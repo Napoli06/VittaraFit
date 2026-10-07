@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VittaraFit</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
+    </style>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+
+</head>
+
+<body>
+
+    <div id="app">
+        <!-- Cabeçalho sempre visível no topo bbs -->
+        <header class="app-header">
+            <div class="logo">Vittara<em>Fit</em></div>
+            <div class="user-avatar" onclick="VittaraRouter.navigate('profile')">AM</div>
+        </header>
+
+        <!-- uma pagina por vez -->
+        <main class="pages-container">
+
+            <section class="page" id="page-home">
+                <div id="home-comeco"></div>
+                <div id="home-scanner"></div>
+                <div id="home-refeicao"></div>
+                <div id="home-agua"></div>
+            </section>
+
+            <section class="page" id="page-planner">
+                <div id="planner-semanal"></div>
+                <div id="planner-alimentar"></div>
+            </section>
+
+            <section class="page" id="page-scanner">
+                <!-- scanner -->
+            </section>
+
+            <section class="page" id="page-list">
+                <div id="lista-orcamento"></div>
+                <div id="lista-itens"></div>
+            </section>
+
+            <section class="page" id="page-ai">
+                <!-- ia -->
+                <div id="chat-mensagens"></div>
+                <div class="chat-input-bar">
+                    <textarea id="chat-input" onkeydown="VittaraAI.handlekeydown(event)"
+                        placeholder="Tire suas dúvidas...">
+        </textarea>
+                    <button onclick="VittaraAI.send()">Enviar</button>
+                </div>
+            </section>
+
+            <section class="page" id="page-profile">
+                <div id="perfil-principal"></div>
+                <div id="perfil-status"></div>
+                <div id="perfil-configuracao"></div>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <button class="nav-item" id="nav-home" onclick="VittaraRouter.navigate('home')">
+                <i class="ti ti-home"></i>
+                <span>Início</span>
+            </button>
+            <button class="nav-item" id="nav-planner" onclick="VittaraRouter.navigate('planner')">
+                <i class="ti ti-calendar-week"></i>
+                <span>Planner</span>
+            </button>
+            <button class="nav-item" id="nav-scanner" onclick="VittaraRouter.navigate('scanner')">
+                <i class="ti ti-scan"></i>
+                <span>Scanner</span>
+            </button>
+            <button class="nav-item" id="nav-list" onclick="VittaraRouter.navigate('list')">
+                <i class="ti ti-shopping-cart"></i>
+                <span>Lista</span>
+            </button>
+            <button class="nav-item" id="nav-ai" onclick="VittaraRouter.navigate('ai')">
+                <i class="ti ti-robot"></i>
+                <span>IA</span>
+            </button>
+            <button class="nav-item" id="nav-profile" onclick="VittaraRouter.navigate('profile')">
+                <i class="ti ti-user"></i>
+                <span>Perfil</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- notificações do toast -->
+    <div id="toast-container"></div>
+
+    <!-- modal aqui -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-sheet">
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Firebase v9 compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- ZXing (biblioteca que lê os códigos de barras) -->
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+
+    <!-- scripts :) -->
+    <script src="js/firebase.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/planner.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/list.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/router.js"></script>
+
+    <script>
+        //inicia o app assim q a pagina é carregada
+        document.addEventListener('DOMContentLoaded', () => {
+            VittaraAuth.init();
+            VittaraRouter.init();
+        });
+    </script>
+
+</body>
+
+</html>

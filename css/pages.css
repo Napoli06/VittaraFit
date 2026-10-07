@@ -1,0 +1,220 @@
+/* card de atalho da home */
+.scanner-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    cursor: pointer;
+}
+
+.scanner-shortcut i:first-child {
+    font-size: 1.4rem;
+    color: var(--c-teal);
+}
+
+.scanner-shortcut-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.scanner-shortcut-text strong {
+    color: var(--text-primary);
+    font-family: var(--font-body);
+}
+
+.scanner-shortcut-text span {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+/* tela cheia do scanner */
+.scanner-wrap {
+    padding: 16px;
+}
+
+.scanner-video-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: var(--bg-base);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.scanner-video-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scanner-frame {
+    position: absolute;
+    inset: 18% 10%;
+    border: 2px solid var(--c-teal);
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+
+.scanner-status {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-height: 1.2rem;
+}
+
+.scanner-status.success { color: var(--c-green-muted); }
+.scanner-status.error   { color: #e08585; }
+
+.scanner-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn-primary,
+.btn-secondary {
+    flex: 1;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--c-teal);
+    color: var(--bg-base);
+    font-weight: 600;
+}
+
+.btn-secondary {
+    background: var(--bg-surface2);
+    color: var(--text-primary);
+}
+
+.btn-secondary:disabled,
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* card do produto encontrado */
+.scanner-product {
+    display: none;
+    margin-top: 14px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 14px;
+}
+
+.scanner-product.visible { display: block; }
+
+.scanner-msg {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.scanner-product-top {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.scanner-product-top img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    background: var(--bg-base);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.scanner-product-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.scanner-product-brand {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.scanner-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.scanner-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(112, 169, 161, 0.15);
+    color: var(--c-teal);
+    border: 1px solid var(--c-teal);
+}
+
+.scanner-badge.warn {
+    background: rgba(224 , 133, 133, 0.15);
+    color: #e08585;
+    border-color: #e08585;
+}
+
+.scanner-section {
+    margin-top: 12px;
+}
+
+.scanner-section h4 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+}
+
+.scanner-section p {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* histórico de leituras */
+
+.scanner-history {
+    margin-top: 18px;
+}
+
+.scanner-history h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+}
+
+.scanner-history-item {
+    display: flex;
+    justify-content: space-between;
+    background: var(--bg-surface);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.scanner-history-item small { color: var(--text-faint); }
+
+.scanner-empty { 
+    color: var(--text-faint); 
+    font-size: 0.85rem; 
+}

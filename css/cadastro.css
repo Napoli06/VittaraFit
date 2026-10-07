@@ -1,0 +1,44 @@
+@import url('login.css');
+
+/* O cadastro tem mais campos: a página cresce e permite rolagem quando necessário. */
+.signup-body {
+    overflow: auto;
+}
+
+.signup-page {
+    height: auto;
+    min-height: 100dvh;
+}
+
+.signup-page .login-panel {
+    padding-top: 22px;
+    padding-bottom: 28px;
+}
+
+.signup-page .brand-mark {
+    margin-bottom: 22px;
+}
+
+.signup-page .panel-text {
+    margin-bottom: 22px;
+}
+
+.signup-page input {
+    padding: 10px 0;
+}
+
+.signup-page .password-label {
+    margin-top: 15px;
+}
+
+.signup-page .field-spaced {
+    margin-top: 14px;
+}
+
+.signup-page .message {
+    margin-top: 12px;
+}
+
+.signup-page .account-link {
+    margin-top: 16px;
+}

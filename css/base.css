@@ -1,0 +1,7 @@
+.page {
+    display: none; /* página começa escondida*/
+}
+
+.page.active {
+    display: block; /* só aparece quando o router ativa a classe*/
+}

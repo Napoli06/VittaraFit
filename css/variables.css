@@ -1,0 +1,36 @@
+:root {
+
+    /* paleta vittara */
+    --c-azure-dark:   #1f363d;
+    --c-azure:        #40798c;
+    --c-teal:         #70a9a1;
+    --c-green-muted:  #9ec1a3;
+    --c-green-pastel: #b6dcbb;
+    --c-green-light:  #cfe0c3;
+
+    /* cores de fundo */
+    --bg-base:        #0e1f25;
+    --bg-surface:     #162830;
+    --bg-surface2:    #1e3540;
+    --bg-surface3:    #263f4c;
+
+    /* cores de texto */
+    --text-primary:   #e8f4f0;
+    --text-secondary: #9ec8c0;
+    --text-muted:     #6a9a94;
+    --text-faint:     #3d6b65;
+
+    /* bordas arredondadas */
+    --radius-sm:  10px;
+    --radius-md:  14px;
+    --radius-lg:  20px;
+    --radius-full: 9999px;
+
+    /* fontes */
+    --font-display: 'DM Serif Display', serif;
+    --font-body:    'Outfit', sans-serif;
+
+    /* alturas fixas */
+    --nav-height:    68px;
+    --header-height: 60px;
+}

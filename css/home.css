@@ -1,0 +1,118 @@
+#page-home {
+  --h-card: #111f2b;
+  --h-borda: #1e3140;
+  --h-suave: #8fa3b3;
+  --h-azul: #4aa3df;
+}
+
+.home-saudacao { margin-bottom: 16px; }
+.home-saudacao h1 { font-size: 20px; }
+.home-saudacao p { font-size: 13px; color: var(--h-suave); margin-top: 2px; }
+#h-nome { cursor: pointer; }
+
+#page-home .card{
+    background: var(--h-card);
+    border: 1px solid var(--h-borda);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+#page-home .card h2{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--h-suave);
+    margin-bottom: 12px;
+}
+
+.home-resumo {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    text-align: center;
+}
+
+.stat {
+    padding: 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.stat:hover {
+    background: rgba(255, 255, 255, .05); 
+}
+.stat strong { 
+    display: block;
+    font-size: 22px;
+}
+.stat strong.destaque { 
+    color: var(--h-azul); 
+}
+.stat span {
+     font-size: 11px; color: var(--h-suave);
+}
+
+.home-atalhos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.home-atalhos button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--h-card);
+    border: 1px solid var(--h-borda);
+    border-radius: 16px;
+    padding: 16px 12px;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.home-atalhos .ti{
+    font-size: 26px;
+    color: var(--h-azul);
+}
+
+.home-meta-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.home-meta-topo p {
+    font-size: 14px;
+    font-weight: 600;
+}
+#h-meta {
+    cursor: pointer;
+    color: var(--h-azul);
+}
+.gota {
+    font-size: 28px;
+    color: var(--h-azul);
+}
+.home-meta-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--h-suave);
+    margin: 8px 0 6px;
+}
+
+#page-home .barra {
+    height: 6px;
+    background: var(--h-borda);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.barra-cheia {
+    height: 100%;
+    width: 0;
+    background: var(--h-azul);
+    border-radius: 99px;
+    transition: widht .6s ease;
+}
+
