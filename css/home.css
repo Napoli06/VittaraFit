@@ -1,8 +1,8 @@
 #page-home {
-  --h-card: #111f2b;
-  --h-borda: #1e3140;
-  --h-suave: #8fa3b3;
-  --h-azul: #4aa3df;
+    --h-card: var(--bg-surface);
+    --h-borda: rgba(31, 54, 61, 0.14);
+    --h-suave: var(--c-azure-dark);
+    --h-azul: var(--c-azure);
 }
 
 .home-saudacao { margin-bottom: 16px; }
@@ -38,7 +38,7 @@
 }
 
 .stat:hover {
-    background: rgba(255, 255, 255, .05); 
+    background: rgba(182, 220, 187, 0.45);
 }
 .stat strong { 
     display: block;
@@ -71,6 +71,12 @@
     font-weight: 600;
     text-align: left;
     cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+.home-atalhos button:hover {
+    background: var(--c-green-pastel);
+    border-color: var(--c-green-muted);
+    transform: translateY(-2px);
 }
 .home-atalhos .ti{
     font-size: 26px;

@@ -2,7 +2,7 @@ window.VittaraRouter = {
 
 
     //lista todas as pag do app
-    pages: ['home', 'planner', 'scanner', 'list', 'ai', 'profile'],
+    pages: ['home', 'planner', 'scanner', 'list', 'profile'],
 
     init() {
         //inicia na home
@@ -14,7 +14,10 @@ window.VittaraRouter = {
         document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); });
 
         //desativa os botões da navegação
-        document.querySelectorAll('.nav-item').forEach(b => { b.classList.remove('active'); });
+        document.querySelectorAll('.nav-item').forEach(b => {
+            b.classList.remove('active');
+            b.removeAttribute('aria-current');
+        });
 
         //moostra só a página solicitada
         const page = document.getElementById('page-' + pageId);
@@ -25,7 +28,10 @@ window.VittaraRouter = {
 
         //ativa so o botão correspondente
         const btn = document.getElementById('nav-' + pageId);
-        if (btn) btn.classList.add('active');
+        if (btn) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-current', 'page');
+        }
 
         //renderiza a pagina carregando as infos na tela
         if (pageId === 'home')    VittaraHome.refresh();

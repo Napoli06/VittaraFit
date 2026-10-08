@@ -9,16 +9,16 @@
     --c-green-light:  #cfe0c3;
 
     /* cores de fundo */
-    --bg-base:        #0e1f25;
-    --bg-surface:     #162830;
-    --bg-surface2:    #1e3540;
-    --bg-surface3:    #263f4c;
+    --bg-base:        #f5f8f2;
+    --bg-surface:     #EEFFE2;
+    --bg-surface2:    var(--c-green-pastel);
+    --bg-surface3:    var(--c-green-muted);
 
     /* cores de texto */
-    --text-primary:   #e8f4f0;
-    --text-secondary: #9ec8c0;
-    --text-muted:     #6a9a94;
-    --text-faint:     #3d6b65;
+    --text-primary:   var(--c-azure-dark);
+    --text-secondary: var(--c-azure);
+    --text-muted:     var(--c-azure-dark);
+    --text-faint:     var(--c-azure);
 
     /* bordas arredondadas */
     --radius-sm:  10px;
@@ -32,5 +32,5 @@
 
     /* alturas fixas */
     --nav-height:    68px;
-    --header-height: 60px;
+    --header-height: 72px;
 }

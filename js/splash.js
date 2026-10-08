@@ -1,21 +1,20 @@
 const splash = document.getElementById('splash');
 const dots = document.querySelectorAll('.dot');
-const logoImg = document.querySelector('.logo-img');
+const logos = document.querySelectorAll('.logo-img');
 
+function mostrarAnimacao(indice) {
+  logos.forEach((logo, i) => logo.classList.toggle('active', i === indice));
+  dots.forEach((dot, i) => dot.classList.toggle('active', i === indice));
+}
 
-let atual = 0;
-const intervalo = setInterval(() => {
-dots[atual].classList.remove('active');
-atual = (atual + 1) % dots.length;
-dots[atual].classList.add('active');
-
-}, 800);
+// Mostra a segunda logo após a primeira animação.
+setTimeout(() => mostrarAnimacao(1), 1500);
 
 setTimeout(() => {
-     clearInterval(intervalo);
-     splash.classList.add('saindo');
-      setTimeout(() => {
-    window.location.href = 'login.html';
-  }, 600); }, 3000);
+  splash.classList.add('saindo');
+  setTimeout(() => {
+    window.location.replace('index.html?splashDone=1');
+  }, 600);
+}, 3000);
 
   

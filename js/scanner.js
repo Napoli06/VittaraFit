@@ -51,25 +51,69 @@ window.VittaraScanner = {
 
         page.innerHTML = `
             <div class="scanner-wrap">
-                <div class="scanner-video-box">
-                    <video id="scanner-video" muted playsinline autoplay></video>
-                    <div class="scanner-frame"></div>
-                </div>
-                
-                <p id="scanner-status" class="scanner-status">
-                    Toque em "iniciar câmera" para começar.
-                </p>
-                
-                <div class="scanner-controls">
-                    <button class="btn-primary" id="scanner-start">Iniciar câmera</button>
-                    <button class="btn-secondary" id="scanner-switch" disabled>Trocar câmera</button>
-                </div>
-                
-                <div id="scanner-product" class="scanner-product"></div>
-                
-                <div class="scanner-history">
-                    <h3>Histórico de Leituras</h3>
-                    <div id="scanner-history-list"></div>
+                <header class="scanner-heading">
+                    <div>
+                        <span class="scanner-eyebrow">VITTARAFIT · ALIMENTOS</span>
+                        <h1>Scanner de produtos</h1>
+                        <p>Descubra informações e acompanhe os produtos que você já leu.</p>
+                    </div>
+                    <span class="scanner-mode"><i class="ti ti-scan"></i> Leitor de código</span>
+                </header>
+                <div class="scanner-layout">
+                    <section class="scanner-card scanner-camera-card">
+                        <div class="scanner-card-heading">
+                            <div>
+                                <span class="scanner-step">01 · LEITOR</span>
+                                <h2>Aponte para o código de barras</h2>
+                                <p>Mantenha o produto estável e dentro da moldura.</p>
+                            </div>
+                            <i class="ti ti-camera scanner-heading-icon"></i>
+                        </div>
+
+                        <div class="scanner-video-box">
+                            <video id="scanner-video" muted playsinline autoplay></video>
+                            <div class="scanner-frame"></div>
+                            <span class="scanner-viewfinder"><i class="ti ti-scan"></i></span>
+                        </div>
+
+                        <p id="scanner-status" class="scanner-status">
+                            Toque em “Iniciar câmera” para começar.
+                        </p>
+
+                        <div class="scanner-controls">
+                            <button class="btn-primary" id="scanner-start"><i class="ti ti-camera"></i> Iniciar câmera</button>
+                            <button class="btn-secondary" id="scanner-switch" disabled><i class="ti ti-switch-2"></i> Trocar câmera</button>
+                        </div>
+                    </section>
+
+                    <div class="scanner-side-column">
+                        <section class="scanner-card scanner-info-card">
+                            <div class="scanner-card-heading compact">
+                                <div>
+                                    <span class="scanner-step">02 · INFORMAÇÕES</span>
+                                    <h2>Produto encontrado</h2>
+                                </div>
+                                <i class="ti ti-package scanner-heading-icon"></i>
+                            </div>
+                            <div id="scanner-product-empty" class="scanner-empty-state">
+                                <i class="ti ti-barcode"></i>
+                                <p>As informações do produto aparecerão aqui após a leitura.</p>
+                            </div>
+                            <div id="scanner-product" class="scanner-product"></div>
+                        </section>
+
+                        <section class="scanner-card scanner-history">
+                            <div class="scanner-card-heading compact">
+                                <div>
+                                    <span class="scanner-step">SUA BIBLIOTECA</span>
+                                    <h2>Produtos já cadastrados</h2>
+                                    <p>Itens lidos e salvos na sua conta.</p>
+                                </div>
+                                <i class="ti ti-list-check scanner-heading-icon"></i>
+                            </div>
+                            <div id="scanner-history-list"></div>
+                        </section>
+                    </div>
                 </div>
             </div>
         `;
@@ -240,6 +284,8 @@ window.VittaraScanner = {
         this.lastLookup = barcode;
 
         const box = document.getElementById('scanner-product');
+        const emptyState = document.getElementById('scanner-product-empty');
+        if (emptyState) emptyState.hidden = true;
         box.classList.add('visible');
         //adiciona a classe q faz o card aparecer (css: .scanner-product.visible)
 
@@ -355,14 +401,23 @@ window.VittaraScanner = {
         //"|| []" garante uma lista vazia como segurança, caso ainda n exista
 
         if (history.length === 0) {
-            list.innerHTML = `<p class="scanner-msg">Nenhum produto escaneado ainda.</p>`;
+            list.innerHTML = `
+                <div class="scanner-history-empty">
+                    <i class="ti ti-inbox"></i>
+                    <p>Nenhum produto salvo ainda.</p>
+                    <span>Os produtos lidos aparecerão nesta lista.</span>
+                </div>`;
             return;
         }
 
         list.innerHTML = history.map(item => `
             <div class="scanner-history-item">
-                <span>${item.nome || item.barcode}</span>
-                <small>${item.barcode}</small>
+                <span class="scanner-history-icon"><i class="ti ti-package"></i></span>
+                <span class="scanner-history-info">
+                    <strong>${item.nome || item.barcode}</strong>
+                    <small><i class="ti ti-barcode"></i> ${item.barcode}</small>
+                </span>
+                <i class="ti ti-chevron-right scanner-history-arrow"></i>
             </div>
         `).join('');
         //.map() transforma cada produto do histórico numa linha de HTML;

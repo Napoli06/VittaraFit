@@ -47,8 +47,8 @@ window.VittaraHome = {
         <button onclick="VittaraRouter.navigate('planner')">
           <i class="ti ti-calendar-week"></i><span>Planejamento<br>Alimentar</span>
         </button>
-        <button onclick="VittaraRouter.navigate('ai')">
-          <i class="ti ti-chef-hat"></i><span>Receitas<br>Saudáveis</span>
+        <button onclick="VittaraRouter.navigate('profile')">
+          <i class="ti ti-user"></i><span>Meu<br>perfil</span>
         </button>
         <button onclick="VittaraRouter.navigate('list')">
           <i class="ti ti-shopping-cart"></i><span>Lista de<br>Compras</span>
@@ -104,9 +104,6 @@ window.VittaraHome = {
     this.texto('h-agua-pct', pct + '%');
     document.getElementById('h-barra').style.width = pct + '%';
 
-    const iniciais = nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-    const avatar = document.querySelector('.user-avatar');
-    if (avatar) avatar.textContent = iniciais;
   },
 
     campos: {

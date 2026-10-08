@@ -4,6 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        const startupParams = new URLSearchParams(window.location.search);
+        if (startupParams.get('splashDone') !== '1') {
+            window.location.replace('carregamento.html');
+        }
+    </script>
     <title>VittaraFit</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
 
@@ -22,8 +28,7 @@
     <div id="app">
         <!-- Cabeçalho sempre visível no topo bbs -->
         <header class="app-header">
-            <div class="logo">Vittara<em>Fit</em></div>
-            <div class="user-avatar" onclick="VittaraRouter.navigate('profile')">AM</div>
+            <img src="vittarafitlogo.png" alt="VittaraFit" class="app-logo">
         </header>
 
         <!-- uma pagina por vez -->
@@ -50,17 +55,6 @@
                 <div id="lista-itens"></div>
             </section>
 
-            <section class="page" id="page-ai">
-                <!-- ia -->
-                <div id="chat-mensagens"></div>
-                <div class="chat-input-bar">
-                    <textarea id="chat-input" onkeydown="VittaraAI.handlekeydown(event)"
-                        placeholder="Tire suas dúvidas...">
-        </textarea>
-                    <button onclick="VittaraAI.send()">Enviar</button>
-                </div>
-            </section>
-
             <section class="page" id="page-profile">
                 <div id="perfil-principal"></div>
                 <div id="perfil-status"></div>
@@ -68,7 +62,7 @@
             </section>
         </main>
 
-        <nav class="bottom-nav">
+        <nav class="bottom-nav" aria-label="Navegação principal">
             <button class="nav-item" id="nav-home" onclick="VittaraRouter.navigate('home')">
                 <i class="ti ti-home"></i>
                 <span>Início</span>
@@ -84,10 +78,6 @@
             <button class="nav-item" id="nav-list" onclick="VittaraRouter.navigate('list')">
                 <i class="ti ti-shopping-cart"></i>
                 <span>Lista</span>
-            </button>
-            <button class="nav-item" id="nav-ai" onclick="VittaraRouter.navigate('ai')">
-                <i class="ti ti-robot"></i>
-                <span>IA</span>
             </button>
             <button class="nav-item" id="nav-profile" onclick="VittaraRouter.navigate('profile')">
                 <i class="ti ti-user"></i>
@@ -123,7 +113,6 @@
     <script src="js/planner.js"></script>
     <script src="js/scanner.js"></script>
     <script src="js/list.js"></script>
-    <script src="js/ai.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/router.js"></script>
 
@@ -131,7 +120,6 @@
         //inicia o app assim q a pagina é carregada
         document.addEventListener('DOMContentLoaded', () => {
             VittaraAuth.init();
-            VittaraRouter.init();
         });
     </script>
 

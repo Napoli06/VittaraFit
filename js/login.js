@@ -40,7 +40,7 @@ loginForm.addEventListener('submit', async event => {
         );
 
         // Abre a aplicação depois que o login for concluído.
-        window.location.replace('index.html');
+        window.location.replace('index.html?splashDone=1');
     } catch (error) {
         // Traduz os principais erros do Firebase para mensagens em português.
         const messages = {

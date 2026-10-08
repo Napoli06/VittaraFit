@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
-    --ink: #1f363d;
-    --blue: #40798c;
-    --turquoise: #70a9a1;
-    --sage: #9ec1a3;
-    --mint: #b6d6bb;
-    --pale-green: #cfe0c3;
-    --muted: #58727a;
-    --paper: #f5f8f2;
-    --panel: #ffffff;
-    --line: #d7e5df;
-    --accent: #70a9a1;
-    --accent-dark: #40798c;
+    --ink: var(--c-azure-dark);
+    --blue: var(--c-azure);
+    --turquoise: var(--c-teal);
+    --sage: var(--c-green-muted);
+    --mint: var(--c-green-pastel);
+    --pale-green: var(--c-green-light);
+    --muted: var(--c-azure);
+    --paper: var(--bg-base);
+    --panel: var(--bg-surface);
+    --line: rgba(31, 54, 61, 0.18);
+    --accent: var(--c-teal);
+    --accent-dark: var(--c-azure);
     --error: #a84d45;
 }
 
@@ -25,9 +25,7 @@ body {
     min-height: 100dvh;
     overflow: hidden;
     color: var(--ink);
-    background:
-        linear-gradient(135deg, rgba(207, 224, 195, 0.52), transparent 42%),
-        var(--paper);
+    background: var(--paper);
     font-family: 'Outfit', sans-serif;
 }
 
@@ -186,7 +184,7 @@ input:focus {
 .submit-button {
     width: 100%;
     padding: 15px 20px;
-    color: #fff;
+    color: var(--bg-surface);
     background: var(--ink);
     border: 0;
     cursor: pointer;
