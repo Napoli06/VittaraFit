@@ -84,6 +84,28 @@ window.VittaraScanner = {
                             <button class="btn-primary" id="scanner-start"><i class="ti ti-camera"></i> Iniciar câmera</button>
                             <button class="btn-secondary" id="scanner-switch" disabled><i class="ti ti-switch-2"></i> Trocar câmera</button>
                         </div>
+
+                        <div class="scanner-divider">
+                            <span>ou digite o código de barras</span>
+                        </div>
+                        <form id="scanner-manual-form" class="scanner-manual-form">
+                            <div class="scanner-input-group">
+                                <i class="ti ti-barcode"></i>
+                                <input 
+                                    type="text" 
+                                    id="scanner-manual-input" 
+                                    placeholder="Digite os 13 dígitos do EAN-13" 
+                                    inputmode="numeric" 
+                                    pattern="[0-9]*" 
+                                    maxlength="13" 
+                                    autocomplete="off"
+                                >
+                                <button type="submit" id="scanner-manual-btn" class="btn-primary" aria-label="Buscar produto" title="Buscar produto">
+                                    <i class="ti ti-search"></i>
+                                </button>
+                            </div>
+                            <span id="scanner-manual-error" class="scanner-manual-error"></span>
+                        </form>
                     </section>
 
                     <div class="scanner-side-column">
@@ -127,9 +149,61 @@ window.VittaraScanner = {
         document.getElementById('scanner-switch')
             .addEventListener('click', () => this.switchCamera());
         //mesma lógica, mas pra trocar a câmera
+
+        const manualInput = document.getElementById('scanner-manual-input');
+        if (manualInput) {
+            // Garante apenas números em tempo real no mobile
+            manualInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 13);
+            });
+        }
+        const manualForm = document.getElementById('scanner-manual-form');
+        if (manualForm) {
+            manualForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleManualSubmit();
+            });
+        }
     },
 
-    //BLOCO 5: ligar a Câmera (sem isso n funciona né?)
+        // BLOCO 5: envio manual do código de barras
+    handleManualSubmit() {
+        const input = document.getElementById('scanner-manual-input');
+        const errorEl = document.getElementById('scanner-manual-error');
+        if (!input) return;
+
+        const barcode = input.value.trim();
+
+        if (errorEl) errorEl.textContent = '';
+
+        if (!barcode) {
+            const msg = 'Por favor, digite o código de barras.';
+            if (errorEl) errorEl.textContent = msg;
+            this.setStatus(msg, 'error');
+            return;
+        }
+
+        // Validação estrita do padrão EAN-13 (exatamente 13 dígitos numéricos)
+        if (barcode.length !== 13) {
+            const msg = `O código EAN-13 deve ter 13 dígitos (você digitou ${barcode.length}).`;
+            if (errorEl) errorEl.textContent = msg;
+            this.setStatus(msg, 'error');
+            return;
+        }
+
+        // Fecha o teclado virtual no celular
+        input.blur();
+
+        this.setStatus(`Buscando código: ${barcode}...`, 'success');
+
+        // Permite reconsultar mesmo que seja o mesmo código buscado antes
+        this.lastLookup = null;
+
+        // Dispara exatamente a mesma busca da câmera (Open Food Facts + Firestore)
+        this.lookupProduct(barcode);
+    },
+
+    //BLOCO 6: ligar a Câmera (sem isso n funciona né?)
     async start() {
         //async pq essa função usa await la dentro (função assíncrona que permite "pausar" a execução esperando
         //uma promise (espaço reservado para um valor ainda n pronto, resultado de função assíncrona), sem travar a tela)
@@ -185,7 +259,7 @@ window.VittaraScanner = {
         }
     },
 
-    //BLOCO 6: o loop de leitura the fato.
+    //BLOCO 7: o loop de leitura the fato.
     async startScanning(deviceId) {
         if (!this.codeReader) {
             const hints = new Map();
@@ -226,7 +300,7 @@ window.VittaraScanner = {
         }
     },
 
-    //BLOCO 7: trocar de câmera (se vc quiser se ver enquanto escaneia o código de barras, pq não?)
+    //BLOCO 8: trocar de câmera (se vc quiser se ver enquanto escaneia o código de barras, pq não?)
     async switchCamera() {
         if (this.devices.length < 2) return;
         //se tem so 1 cam ent nem faz sentido trocar, so sai da função
@@ -243,7 +317,7 @@ window.VittaraScanner = {
         //liga a prox cam da lista
     },
 
-    //BLOCO 8: atualizar mensagem de status
+    //BLOCO 9: atualizar mensagem de status
     setStatus(msg, kind) {
         const el = document.getElementById('scanner-status');
         if (!el) return;
@@ -256,7 +330,7 @@ window.VittaraScanner = {
         //que muda a cor do texto (definido em pages.css)
     },
 
-    //BLOCO 9: o que o sistema faz quando detecta um código
+    //BLOCO 10: o que o sistema faz quando detecta um código
     onDetect(text, format) {
         const key = format + ':' + text;
         //combina o tipo com um texto numa unica chave de identificação
@@ -276,7 +350,7 @@ window.VittaraScanner = {
         //finalmente, dispara a busca pelo produto - próssimu bloko :)
     },
 
-    //BLOCO 10: buscar o produto na Open Food Facts
+    //BLOCO 11: buscar o produto na Open Food Facts
     async lookupProduct(barcode) {
         if (this.lastLookup === barcode) return;
         //se o ultimo codigo buscado foi esse msm, n repete a chamada a toa
@@ -329,28 +403,52 @@ window.VittaraScanner = {
             //organiza tudo num objeto único "produto" - vamos usá-lo tanto pra mostrar na tela quanto pra salvar no Firestore
 
             this.renderProduct(produto);
-            //desenha o card na tela (bloco 11, calma ai)
+            //desenha o card na tela (bloco 13, calma ai)
 
             if (window.VittaraAuth?.currentUser) {
                 VittaraDB.saveScan(produto).then(() => VittaraDB.loadScanHistory());
-                }
-                //só salva no banco se o user ja estiver LOGADO
-                //vittaraAuth.currentUser é nulo quando ngm logou
-                //vittaraDB.saveScan() e loadScanHistory() já existiam prontas no firebase.js
-                //a gnt so chama eles aqui. loadScanHistory ja termina chamando VittaraScanner.renderHistory sozinha
-                //olhar o firebase.js, função loadScanHistory
+            }
+            //só salva no banco se o user ja estiver LOGADO
+            //vittaraAuth.currentUser é nulo quando ngm logou
+            //vittaraDB.saveScan() e loadScanHistory() já existiam prontas no firebase.js
+            //a gnt so chama eles aqui. loadScanHistory ja termina chamando VittaraScanner.renderHistory sozinha
+            //olhar o firebase.js, função loadScanHistory
 
-                window.VittaraUI?.toast?.(`Produto Encontrado: ${produto.nome}`, 'success');
-                //mostra uma notificação toast, SE o módulo VittaraUI (ui.js) já tiver
-                //uma função toast() implementada. Os dois "?." evitam erro caso não tenha ainda.
+            window.VittaraUI?.toast?.(`Produto Encontrado: ${produto.nome}`, 'success');
+            //mostra uma notificação toast, SE o módulo VittaraUI (ui.js) já tiver
+            //uma função toast() implementada. Os dois "?." evitam erro caso não tenha ainda.
         } catch (e) {
             box.innerHTML = `<p class="scanner-msg">Erro ao Consultar o Produto: ${e.message}</p>`;
             //se a internet cair ou a API falhar, mostra isso em vez de travar 
         }
     },
 
-    //BLOCO 11: Card do produto
-        renderProduct(p) {
+    //BLOCO 12: auxiliar da classificação NOVA (níveis 1, 2, 3 e 4)
+    getNovaInfo(novaLevel) {
+        if (!novaLevel) return null;
+        const level = Number(novaLevel);
+        const descriptions = {
+            1: 'in natura ou minimamente processado',
+            2: 'ingrediente culinário processado',
+            3: 'alimento processado',
+            4: 'ultraprocessado'
+        };
+
+        const desc = descriptions[level] || `nível ${level}`;
+        const query = encodeURIComponent(`o que é a classificação NOVA ${level}`);
+        const searchUrl = `https://www.google.com/search?q=${query}`;
+
+        return {
+            level,
+            desc,
+            badgeClass: `scanner-badge nova-${level}${level >= 4 ? ' warn' : ''}`,
+            buttonText: `O que é o NOVA ${level}?`,
+            searchUrl
+        };
+    },
+
+    //BLOCO 13: Card do produto encontrado
+    renderProduct(p) {
         const box = document.getElementById('scanner-product');
         if (!box) return;
 
@@ -358,15 +456,12 @@ window.VittaraScanner = {
         if (p.nutriscore) {
             badges += `<span class="scanner-badge">Nutri-Score ${p.nutriscore}</span>`;
         }
-        //só adiciona o selo de Nutri-Score se essa informação existir
 
-        if (p.nova) {
-            const alerta = p.nova >= 4 ? ' warn' : '';
-            const texto = p.nova >= 4 ? ` (ultraprocessado)` : '';
-            badges += `<span class="scanner-badge${alerta}">NOVA ${p.nova}${texto}</span>`;
+        // Adiciona o selo da classificação NOVA com descrição do nível
+        const novaInfo = this.getNovaInfo(p.nova);
+        if (novaInfo) {
+            badges += `<span class="${novaInfo.badgeClass}">NOVA ${novaInfo.level} (${novaInfo.desc})</span>`;
         }
-        //grupo NOVA 4 = ultraprocessado. Se for o caso, adiciona a classe
-        //"warn" (deixa o selo vermelho, ver em pages.css) e o texto de aviso
 
         box.innerHTML = `
             <div class="scanner-product-top">
@@ -377,6 +472,16 @@ window.VittaraScanner = {
                 </div>
             </div>
             ${badges ? `<div class="scanner-badges">${badges}</div>` : ''}
+            
+            <!-- Botão dinâmico que abre a pesquisa no Google em nova aba -->
+            ${novaInfo ? `
+                <div class="scanner-nova-action">
+                    <a href="${novaInfo.searchUrl}" target="_blank" rel="noopener noreferrer" class="btn-nova-explain">
+                        <i class="ti ti-help-circle"></i> ${novaInfo.buttonText}
+                    </a>
+                </div>
+            ` : ''}
+
             <div class="scanner-section">
                 <h4>Ingredientes</h4>
                 <p>${p.ingredientes}</p>
@@ -388,17 +493,14 @@ window.VittaraScanner = {
             </div>` : ''}
         `;
         //cada "${condição ? '...' : ''}" só mostra aquele pedaço de HTML se a informação existir
-        //evita, por exemplo, uma seção "Alérgenos" vazia
     },
 
-    //BLOCO 12: histórico de leituras
+    //BLOCO 14: histórico de leituras
     renderHistory() {
         const list = document.getElementById('scanner-history-list');
         if (!list) return;
 
         const history = window.VittaraState?.scanHistory || [];
-        //pega o histórico do VittaraState (que ta no state.js)
-        //"|| []" garante uma lista vazia como segurança, caso ainda n exista
 
         if (history.length === 0) {
             list.innerHTML = `
@@ -410,18 +512,53 @@ window.VittaraScanner = {
             return;
         }
 
-        list.innerHTML = history.map(item => `
-            <div class="scanner-history-item">
-                <span class="scanner-history-icon"><i class="ti ti-package"></i></span>
-                <span class="scanner-history-info">
-                    <strong>${item.nome || item.barcode}</strong>
-                    <small><i class="ti ti-barcode"></i> ${item.barcode}</small>
-                </span>
-                <i class="ti ti-chevron-right scanner-history-arrow"></i>
-            </div>
-        `).join('');
-        //.map() transforma cada produto do histórico numa linha de HTML;
-        //.join('') cola todas as linhas numa única string, sem separador,
-        //pronta pra jogar direto no innerHTML
+        list.innerHTML = history.map(item => {
+            const nutriBadge = item.nutriscore
+                ? `<span class="scanner-badge">Nutri-Score ${item.nutriscore}</span>`
+                : `<span class="scanner-badge muted">Nutri-Score N/A</span>`;
+
+            const novaInfo = this.getNovaInfo(item.nova);
+            const novaBadge = novaInfo
+                ? `<span class="${novaInfo.badgeClass}">NOVA ${novaInfo.level} (${novaInfo.desc})</span>`
+                : `<span class="scanner-badge muted">NOVA N/A</span>`;
+
+            // Botão no histórico com onclick="event.stopPropagation()" para não fechar a gaveta ao clicar
+            const novaButton = novaInfo
+                ? `
+                    <div class="scanner-nova-action">
+                        <a href="${novaInfo.searchUrl}" target="_blank" rel="noopener noreferrer" class="btn-nova-explain" onclick="event.stopPropagation()">
+                            <i class="ti ti-help-circle"></i> ${novaInfo.buttonText}
+                        </a>
+                    </div>
+                `
+                : '';
+
+            return `
+                <div class="scanner-history-item" onclick="VittaraScanner.toggleHistoryItem(this)">
+                    <div class="scanner-history-header">
+                        <span class="scanner-history-icon"><i class="ti ti-package"></i></span>
+                        <span class="scanner-history-info">
+                            <strong>${item.nome || item.barcode}</strong>
+                            <small><i class="ti ti-barcode"></i> ${item.barcode}</small>
+                        </span>
+                        <i class="ti ti-chevron-right scanner-history-arrow"></i>
+                    </div>
+                    <!-- Área do efeito cascata com resumo e botão do Google -->
+                    <div class="scanner-history-details">
+                        <div class="scanner-history-badges">
+                            ${nutriBadge}
+                            ${novaBadge}
+                        </div>
+                        ${novaButton}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    //BLOCO 15: alternar abertura do efeito cascata
+    toggleHistoryItem(el) {
+        if (!el) return;
+        el.classList.toggle('open');
     }
 };

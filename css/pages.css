@@ -104,6 +104,83 @@
     cursor: default;
 }
 
+/* divisor e formulário de código manual */
+.scanner-divider {
+    display: flex;
+    align-items: center;
+    margin: 16px 0 12px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.scanner-divider::before,
+.scanner-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(31, 54, 61, 0.12);
+}
+.scanner-divider span {
+    padding: 0 10px;
+}
+.scanner-manual-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.scanner-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid rgba(31, 54, 61, 0.15);
+    border-radius: var(--radius-sm);
+    padding: 4px 6px 4px 12px;
+    gap: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.scanner-input-group:focus-within {
+    border-color: var(--c-azure);
+    box-shadow: 0 0 0 2px rgba(64, 121, 140, 0.15);
+}
+.scanner-input-group i.ti-barcode {
+    font-size: 1.35rem;
+    color: var(--c-azure);
+    flex-shrink: 0;
+}
+.scanner-input-group input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding: 8px 0;
+    letter-spacing: 0.04em;
+}
+.scanner-input-group input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+    font-size: 0.85rem;
+}
+.scanner-input-group button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+}
+.scanner-manual-error {
+    font-size: 0.78rem;
+    color: #e08585;
+    min-height: 1.1rem;
+    padding-left: 2px;
+}
+
 /* card do produto encontrado */
 .scanner-product {
     display: none;
@@ -169,6 +246,62 @@
     border-color: #e08585;
 }
 
+/* Níveis específicos da classificação NOVA */
+.scanner-badge.nova-1 {
+    background: rgba(112, 169, 161, 0.2);
+    color: var(--c-azure-dark);
+    border-color: var(--c-teal);
+}
+
+.scanner-badge.nova-2 {
+    background: rgba(207, 224, 195, 0.5);
+    color: var(--c-azure-dark);
+    border-color: var(--c-green-muted);
+}
+
+.scanner-badge.nova-3 {
+    background: rgba(240, 185, 120, 0.22);
+    color: #9c5c16;
+    border-color: #e09c4d;
+}
+
+.scanner-badge.nova-4 {
+    background: rgba(224, 133, 133, 0.18);
+    color: #a84d45;
+    border-color: #e08585;
+}
+
+/* Botão explicativo que direciona ao Google */
+.scanner-nova-action {
+    margin-top: 10px;
+}
+
+.btn-nova-explain {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-surface);
+    color: var(--c-azure);
+    border: 1px solid rgba(64, 121, 140, 0.3);
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+}
+
+.btn-nova-explain:hover {
+    background: var(--c-azure);
+    color: #ffffff;
+    border-color: var(--c-azure);
+    transform: translateY(-1px);
+}
+
+.btn-nova-explain i {
+    font-size: 0.95rem;
+}
+
 .scanner-section {
     margin-top: 12px;
 }
@@ -204,20 +337,114 @@
 
 .scanner-history-item {
     display: flex;
-    justify-content: space-between;
-    background: var(--bg-surface);
-    border-radius: var(--radius-sm);
+    flex-direction: column;
+    margin: 0 0 8px;
     padding: 10px 12px;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-    font-size: 0.85rem;
+    background: rgba(182, 220, 187, 0.25);
+    border: 1px solid rgba(31, 54, 61, 0.08);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.scanner-history-item small { color: var(--text-faint); }
+.scanner-history-item:last-child {
+    margin-bottom: 0;
+}
 
-.scanner-empty { 
-    color: var(--text-faint); 
-    font-size: 0.85rem; 
+.scanner-history-item:hover {
+    background: var(--bg-surface2);
+    border-color: rgba(112, 169, 161, 0.28);
+}
+
+/* Quando o item estiver aberto */
+.scanner-history-item.open {
+    background: var(--bg-surface2);
+    border-color: rgba(112, 169, 161, 0.35);
+    box-shadow: 0 3px 10px rgba(31, 54, 61, 0.06);
+}
+
+.scanner-history-header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+}
+
+.scanner-history-icon {
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    color: var(--c-teal);
+    background: rgba(112, 169, 161, 0.12);
+    border-radius: 10px;
+    font-size: 1.1rem;
+}
+
+.scanner-history-info {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+    gap: 3px;
+}
+
+.scanner-history-info strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scanner-history-info small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+/* Seta animada: gira 90° para baixo ao abrir */
+.scanner-history-arrow {
+    color: var(--text-faint);
+    transition: transform 0.25s ease, color 0.2s ease;
+}
+
+.scanner-history-item.open .scanner-history-arrow {
+    transform: rotate(90deg);
+    color: var(--c-azure-dark);
+}
+
+/* Efeito cascata da gaveta de detalhes */
+.scanner-history-details {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, margin-top 0.22s ease, padding-top 0.22s ease;
+}
+
+.scanner-history-item.open .scanner-history-details {
+    max-height: 140px;
+    opacity: 1;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(31, 54, 61, 0.14);
+}
+
+.scanner-history-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.scanner-badge.muted {
+    background: rgba(31, 54, 61, 0.06);
+    color: var(--text-muted);
+    border-color: rgba(31, 54, 61, 0.12);
 }
 
 /* scanner: layout completo e responsivo */
