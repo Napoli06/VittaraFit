@@ -54,8 +54,10 @@ signupForm.addEventListener('submit', async event => {
                 altura: null,
                 metaDePeso: null,
                 objetivo: 'Perda de peso',
+                metaAguaL: 2,
                 restricoes: [],
-                orcamento: 300,
+                alimentosFavoritos: [],
+                profileComplete: false, 
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         } catch (profileError) {

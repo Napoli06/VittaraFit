@@ -1,11 +1,11 @@
 //config do firebase 
 const firebaseConfig = {
-  apiKey: "AIzaSyDjuOKVNw11ZPja_XOB7vmGC9KpOGA8q7E",
-  authDomain: "vittarafit-71d7f.firebaseapp.com",
-  projectId: "vittarafit-71d7f",
-  storageBucket: "vittarafit-71d7f.firebasestorage.app",
-  messagingSenderId: "538992150124",
-  appId: "1:538992150124:web:cf6dd3caf172337fe6fa49"
+    apiKey: "AIzaSyDjuOKVNw11ZPja_XOB7vmGC9KpOGA8q7E",
+    authDomain: "vittarafit-71d7f.firebaseapp.com",
+    projectId: "vittarafit-71d7f",
+    storageBucket: "vittarafit-71d7f.firebasestorage.app",
+    messagingSenderId: "538992150124",
+    appId: "1:538992150124:web:cf6dd3caf172337fe6fa49"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -113,11 +113,12 @@ window.VittaraDB = {
             peso: null,
             altura: null,
             metaDePeso: null,
-            objetivo: 'Perda de peso',
+            objetivo: '',
+            metaAguaL: 2,
             restricoes: [],
-            orcamento: 300,
+            alimentosFavoritos: [],
+            profileComplete: false,          // ← NOVO: indica que o perfil precisa ser completado
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //serverTimestamp() usa horario do servidor do firebase (mais confiável q o do celular)
         });
     },
 
@@ -150,30 +151,23 @@ window.VittaraDB = {
     //salva o plano de um dia específico
     //datakey tem o formato YYYY-MM-DD
     async saveMealPlan(dataKey, plan) {
-        //subcoleção: users/{uid}/mealPlans/{data}
         await db
             .collection('usuarios').doc(this.uid)
             .collection('mealPlans').doc(dataKey)
-            .get();
-
-        if (doc.exists) {
-            //salva no estado local
-            VittaraState.mealPlan[dataKey] = doc.data();
-            return doc.data();
-        }
-        return null;
+            .set({ ...plan, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        VittaraState.mealPlan[dataKey] = plan;
     },
 
     //LISTA DE COMPRAS
 
     //salva a lista completa
-    async loadShoppingList(list) {
+    async saveShoppingList(list) {
         await db
             .collection('usuarios').doc(this.uid)
             .collection('lists').doc('current')
             .set({ items: list, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     },
-
+    
     //busca a lista
     async loadShoppingList() {
         const doc = await db
@@ -204,15 +198,15 @@ window.VittaraDB = {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
     },
-    
+
     //busca os ultimos 30 dias de registros
     async loadLogs() {
         const snap = await db
-        .collection('usuarios').doc(this.uid)
-        .collection('logs')
-        .orderBy('date', 'desc') //mais recente primeiro
-        .limit (30)
-        .get();
+            .collection('usuarios').doc(this.uid)
+            .collection('logs')
+            .orderBy('date', 'desc') //mais recente primeiro
+            .limit(30)
+            .get();
 
         //snap.docs é um array de docs
         return snap.docs.map(doc => doc.data());
@@ -222,21 +216,21 @@ window.VittaraDB = {
     async saveScan(product) {
         //addDoc cria um produto com ID automático
         await db
-        .collection('usuarios').doc(this.uid)
-        .collection('scans')
-        .add({
-            ...product,
-            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
+            .collection('usuarios').doc(this.uid)
+            .collection('scans')
+            .add({
+                ...product,
+                scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
     },
 
     async loadScanHistory() {
         const snap = await db
-        .collection('usuarios').doc(this.uid)
-        .collection('scans')
-        .orderBy('scannedAt', 'desc')
-        .limit(10)
-        .get();
+            .collection('usuarios').doc(this.uid)
+            .collection('scans')
+            .orderBy('scannedAt', 'desc')
+            .limit(10)
+            .get();
 
         VittaraState.scanHistory = snap.docs.map(doc => doc.data());
         VittaraScanner.renderHistory();
@@ -247,14 +241,14 @@ window.VittaraDB = {
 
     listenToShoppingList() {
         return db
-        .collection('usuarios').doc(this.uid)
-        .collection('lists').doc('current')
-        .onSnapshot((doc) => {
-            if (doc.exists) {
-                VittaraState.shoppingList = doc.data().items;
-                VittaraList.refresh(); //atualiza a tela automaticamente
-            }
-        });
+            .collection('usuarios').doc(this.uid)
+            .collection('lists').doc('current')
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    VittaraState.shoppingList = doc.data().items;
+                    VittaraList.refresh(); //atualiza a tela automaticamente
+                }
+            });
         // Guarde o retorno dessa função para cancelar a escuta:
         // const unsubscribe = VittaraDB.listenToShoppingList();
         // unsubscribe(); // cancela quando não precisar mais

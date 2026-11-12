@@ -1,21 +1,24 @@
 const salvarDia = () => VittaraDB.saveDailyLog(VittaraHome.hojeKey());
 
 window.VittaraHome = {
-    montado: false,
+  montado: false,
 
-    hojeKey() {
-        const d = new Date();
-        const mes = String(d.getMonth() + 1).padStart(2, '0');
-        const dia = String(d.getDate()).padStart(2, '0');
-        return `${d.getFullYear()}-${mes}-${dia}`;
-    },
+  hojeKey() {
+    const d = new Date();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mes}-${dia}`;
+  },
 
-    refresh() {
-       if (!this.montado) this.montar();
-       this.render();
-    },
+  refresh() {
+    if (!this.montado) this.montar();
+    this.render();
 
-      montar() {
+    // exibe banner de configuração de perfil se necessário
+    this.mostrarBannerSetup();
+  },
+
+  montar() {
     document.getElementById('home-comeco').innerHTML = `
       <div class="home-saudacao">
         <h1>Olá, <span id="h-nome" data-campo="nome"></span>! 👋</h1>
@@ -73,19 +76,19 @@ window.VittaraHome = {
     this.montado = true;
   },
 
-    ligarEventos() {
+  ligarEventos() {
     document.getElementById('page-home').addEventListener('click', (e) => {
       const alvo = e.target.closest('[data-campo]');
       if (alvo) this.editar(alvo.dataset.campo);
     });
   },
 
-    texto(id, valor) {
+  texto(id, valor) {
     const el = document.getElementById(id);
     if (el) el.textContent = valor;
   },
 
-    render() {
+  render() {
     const { user, today } = VittaraState;
     const nome = user.name || 'Usuário';
     this.texto('h-nome', nome.split(' ')[0]);
@@ -106,14 +109,14 @@ window.VittaraHome = {
 
   },
 
-    campos: {
+  campos: {
     nome: {
       rotulo: 'Seu nome', tipo: 'texto',
       ler: () => VittaraState.user.name,
       aplicar: (v) => { VittaraState.user.name = v; },
       salvar: () => VittaraDB.updateProfile({ name: VittaraState.user.name })
     },
-        calorias: {
+    calorias: {
       rotulo: 'Calorias consumidas hoje (kcal)', tipo: 'numero',
       ler: () => VittaraState.today.kcalConsumidas,
       aplicar: (v) => { VittaraState.today.kcalConsumidas = v; },
@@ -139,7 +142,7 @@ window.VittaraHome = {
     }
   },
 
-    async editar(campo) {
+  async editar(campo) {
     const cfg = this.campos[campo];
     const resposta = prompt(cfg.rotulo + ':', cfg.ler());
     if (resposta === null) return;
@@ -156,7 +159,7 @@ window.VittaraHome = {
       valor = limpo;
     }
 
-        cfg.aplicar(valor);
+    cfg.aplicar(valor);
     this.render();
     try {
       await cfg.salvar();
@@ -164,5 +167,30 @@ window.VittaraHome = {
       console.error(erro);
       VittaraUI.toast('Não foi possível salvar', 'error');
     }
-  }
+  },
+
+  mostrarBannerSetup() {
+    if (document.getElementById('setup-banner')) return; // já existe
+    const { user } = VittaraState;
+    const pulou = sessionStorage.getItem('setupSkipped') === '1';
+    if (user.profileComplete || pulou) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'setup-banner';
+    banner.className = 'setup-banner';
+    banner.innerHTML = `
+            <div class="setup-banner-conteudo">
+                <i class="ti ti-settings"></i>
+                <div>
+                    <strong>Termine de configurar seu perfil</strong>
+                    <span>Adicione seus objetivos, medidas e preferências</span>
+                </div>
+            </div>
+            <button onclick="VittaraSetup.abrir()" class="setup-banner-btn">Configurar →</button>
+        `;
+
+    // Insere no topo da home, antes do primeiro filho
+    const pageHome = document.getElementById('page-home');
+    pageHome.insertBefore(banner, pageHome.firstChild);
+  },
 };
