@@ -252,5 +252,35 @@ window.VittaraDB = {
         // Guarde o retorno dessa função para cancelar a escuta:
         // const unsubscribe = VittaraDB.listenToShoppingList();
         // unsubscribe(); // cancela quando não precisar mais
-    }
+    },
+
+    // Comprime a imagem e salva como Base64 no Firestore
+    async uploadFotoPerfil(arquivo) {
+        const base64 = await VittaraDB.comprimirImagem(arquivo, 200, 0.75);
+        await this.updateProfile({ fotoPerfil: base64 });
+        return base64;
+    },
+
+    // Redimensiona e comprime via Canvas — retorna string Base64
+    comprimirImagem(arquivo, tamanhoMax = 200, qualidade = 0.75) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    // Mantém proporção mas limita ao tamanhoMax
+                    const ratio = Math.min(tamanhoMax / img.width, tamanhoMax / img.height);
+                    canvas.width  = Math.round(img.width  * ratio);
+                    canvas.height = Math.round(img.height * ratio);
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', qualidade));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(arquivo);
+        });
+    },
 };

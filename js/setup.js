@@ -2,16 +2,16 @@ window.VittaraSetup = {
 
     // Objetivos disponíveis
     objetivos: [
-        { id: 'massa',       label: 'Ganhar massa magra',         icon: 'ti-barbell'       },
-        { id: 'emagrecer',   label: 'Emagrecer',                  icon: 'ti-flame'         },
-        { id: 'alimentacao', label: 'Melhorar a alimentação',     icon: 'ti-leaf'          },
-        { id: 'custo',       label: 'Alimentação custo-benefício',icon: 'ti-coin'          },
+        { id: 'massa', label: 'Ganhar massa magra', icon: 'ti-barbell' },
+        { id: 'emagrecer', label: 'Emagrecer', icon: 'ti-flame' },
+        { id: 'alimentacao', label: 'Melhorar a alimentação', icon: 'ti-leaf' },
+        { id: 'custo', label: 'Alimentação custo-benefício', icon: 'ti-coin' },
     ],
 
     // Abre o modal de setup
     abrir() {
         const overlay = document.getElementById('modal-overlay');
-        const body    = document.getElementById('modal-body');
+        const body = document.getElementById('modal-body');
 
         body.innerHTML = this._html();
         overlay.classList.add('active');
@@ -58,6 +58,13 @@ window.VittaraSetup = {
             </div>
 
             <form id="setup-form" onsubmit="VittaraSetup.salvar(event)">
+
+            <div class="setup-secao">
+                <label class="setup-label" for="setup-nome">Nome de perfil</label>
+                <input id="setup-nome" type="text" class="setup-input"
+                    placeholder="Como quer ser chamado?"
+                    value="${VittaraState.user.name || ''}">
+            </div>
 
                 <div class="setup-secao">
                     <label class="setup-label">Qual é o seu objetivo?</label>
@@ -126,17 +133,18 @@ window.VittaraSetup = {
         const form = document.getElementById('setup-form');
 
         const objetivoEl = form.querySelector('.setup-objetivo.sel');
-        const objetivo   = objetivoEl ? objetivoEl.dataset.id : '';
-        const agua  = parseFloat(document.getElementById('setup-agua').value)   || VittaraState.user.metaAguaL;
-        const peso  = parseFloat(document.getElementById('setup-peso').value)   || null;
+        const objetivo = objetivoEl ? objetivoEl.dataset.id : '';
+        const nome = document.getElementById('setup-nome').value.trim() || VittaraState.user.name;
+        const agua = parseFloat(document.getElementById('setup-agua').value) || VittaraState.user.metaAguaL;
+        const peso = parseFloat(document.getElementById('setup-peso').value) || null;
         const altura = parseFloat(document.getElementById('setup-altura').value) || null;
 
-        const restricoesRaw  = document.getElementById('setup-restricoes').value;
-        const favoritosRaw   = document.getElementById('setup-favoritos').value;
-        const restricoes     = restricoesRaw  ? restricoesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const restricoesRaw = document.getElementById('setup-restricoes').value;
+        const favoritosRaw = document.getElementById('setup-favoritos').value;
+        const restricoes = restricoesRaw ? restricoesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
         const alimentosFavoritos = favoritosRaw ? favoritosRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
 
-        const dados = { objetivo, metaAguaL: agua, peso, altura, restricoes, alimentosFavoritos, profileComplete: true };
+        const dados = { name: nome, objetivo, metaAguaL: agua, peso, altura, restricoes, alimentosFavoritos, profileComplete: true };
 
         try {
             await VittaraDB.updateProfile(dados);

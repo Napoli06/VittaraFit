@@ -12,9 +12,26 @@ window.VittaraProfile = {
 
             <!-- Cabeçalho -->
             <div class="profile-header">
-                <div class="profile-avatar" id="p-avatar">
-                    <i class="ti ti-user"></i>
+                <div class="profile-avatar" id="p-avatar" onclick="VittaraProfile.abrirMenuFoto()" title="Alterar foto">
+                    <i class="ti ti-user" id="p-avatar-icon"></i>
+                    <img id="p-avatar-img" src="" alt="Foto de perfil" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
                 </div>
+                <div class="profile-avatar-overlay"><i class="ti ti-camera"></i></div>
+            </div>
+            <!-- Menu de foto (oculto) -->
+            <div id="profile-foto-menu" class="profile-foto-menu" style="display:none;">
+                <button onclick="VittaraProfile.escolherFoto('camera')">
+                    <i class="ti ti-camera"></i> Tirar foto
+                </button>
+                <button onclick="VittaraProfile.escolherFoto('galeria')">
+                    <i class="ti ti-photo"></i> Escolher da galeria
+                </button>
+                <button class="profile-foto-menu-cancelar" onclick="VittaraProfile.fecharMenuFoto()">
+                    Cancelar
+                </button>
+            </div>
+            <input type="file" id="profile-foto-input" accept="image/*" style="display:none"
+                onchange="VittaraProfile.processarFoto(this)">
                 <div class="profile-info">
                     <h2 id="p-nome">—</h2>
                     <span id="p-email" class="profile-email">—</span>
@@ -75,26 +92,95 @@ window.VittaraProfile = {
     render() {
         const { user } = VittaraState;
 
-        this._t('p-nome',   user.name  || '—');
-        this._t('p-email',  user.email || '—');
+        this._t('p-nome', user.name || '—');
+        this._t('p-email', user.email || '—');
 
         const objetivoMap = {
-            massa:       'Ganhar massa magra',
-            emagrecer:   'Emagrecer',
+            massa: 'Ganhar massa magra',
+            emagrecer: 'Emagrecer',
             alimentacao: 'Melhorar a alimentação',
-            custo:       'Alimentação custo-benefício',
+            custo: 'Alimentação custo-benefício',
         };
         this._t('p-objetivo', objetivoMap[user.objetivo] || user.objetivo || '—');
-        this._t('p-peso',    user.peso   ? user.peso + ' kg'  : '—');
-        this._t('p-altura',  user.altura ? user.altura + ' m' : '—');
-        this._t('p-imc',     VittaraState.bmi || '—');
-        this._t('p-restricoes',  (user.restricoes?.length)       ? user.restricoes.join(', ')       : 'Nenhuma');
-        this._t('p-favoritos',   (user.alimentosFavoritos?.length)? user.alimentosFavoritos.join(','): '—');
-        this._t('p-agua',    (user.metaAguaL || 2) + ' L/dia');
+        this._t('p-peso', user.peso ? user.peso + ' kg' : '—');
+        this._t('p-altura', user.altura ? user.altura + ' m' : '—');
+        this._t('p-imc', VittaraState.bmi || '—');
+        this._t('p-restricoes', (user.restricoes?.length) ? user.restricoes.join(', ') : 'Nenhuma');
+        this._t('p-favoritos', (user.alimentosFavoritos?.length) ? user.alimentosFavoritos.join(',') : '—');
+        this._t('p-agua', (user.metaAguaL || 2) + ' L/dia');
+
+        // Carrega foto de perfil se existir
+        if (user.fotoPerfil) {
+            this._mostrarFoto(user.fotoPerfil);
+        }
     },
 
     _t(id, val) {
         const el = document.getElementById(id);
         if (el) el.textContent = val;
+    },
+
+    abrirMenuFoto() {
+        const menu = document.getElementById('profile-foto-menu');
+        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+
+        // Fecha ao clicar fora
+        setTimeout(() => {
+            document.addEventListener('click', VittaraProfile._fecharMenuFotoFora, { once: true });
+        }, 50);
+    },
+
+    _fecharMenuFotoFora(e) {
+        const menu = document.getElementById('profile-foto-menu');
+        const avatar = document.getElementById('p-avatar');
+        if (menu && !menu.contains(e.target) && !avatar.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    },
+
+    fecharMenuFoto() {
+        document.getElementById('profile-foto-menu').style.display = 'none';
+    },
+
+    escolherFoto(modo) {
+        this.fecharMenuFoto();
+        const input = document.getElementById('profile-foto-input');
+        // 'camera' usa a câmera frontal; 'galeria' abre o seletor normal
+        if (modo === 'camera') {
+            input.setAttribute('capture', 'user');
+        } else {
+            input.removeAttribute('capture');
+        }
+        input.click();
+    },
+
+    async processarFoto(input) {
+        const arquivo = input.files[0];
+        if (!arquivo) return;
+
+        // Pré-visualiza imediatamente
+        const url = URL.createObjectURL(arquivo);
+        this._mostrarFoto(url);
+
+        try {
+            VittaraUI.toast('Enviando foto…', 'info');
+            const urlFirebase = await VittaraDB.uploadFotoPerfil(arquivo);
+            this._mostrarFoto(urlFirebase);
+            VittaraUI.toast('Foto atualizada! 📸', 'success');
+        } catch (err) {
+            VittaraUI.toast('Erro ao enviar a foto', 'error');
+            console.error(err);
+        }
+
+        input.value = ''; // reseta o input para permitir re-seleção
+    },
+
+    _mostrarFoto(url) {
+        const img  = document.getElementById('p-avatar-img');
+        const icon = document.getElementById('p-avatar-icon');
+        if (!img) return;
+        img.src = url;
+        img.style.display = 'block';
+        if (icon) icon.style.display = 'none';
     },
 };
