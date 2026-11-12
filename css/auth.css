@@ -1,0 +1,395 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* =========================================================
+   1. VARIÁVEIS (a paleta é a mesma de antes)
+   ========================================================= */
+:root {
+    font-family: 'Roboto Condensed', sans-serif;
+
+    --fundo-basico: #eeffe2;
+    --verde-claro: #9ec1a3;
+    --verde: #70a9a1;
+    --azul: #40798c;
+    --azul-escuro: #1f363d;
+    --erro: #a84d45;
+
+    --raio-card: 22px;
+    --raio-campo: 12px;
+    --sombra-suave: 0 2px 8px color-mix(in srgb, var(--azul-escuro) 10%, transparent);
+    --sombra-card: 0 10px 30px color-mix(in srgb, var(--azul-escuro) 14%, transparent),
+                   0 2px 6px color-mix(in srgb, var(--azul-escuro) 8%, transparent);
+    --brilho-foco: 0 0 0 4px color-mix(in srgb, var(--azul) 22%, transparent);
+    --gradiente-marca: linear-gradient(90deg, var(--verde-claro), var(--verde), var(--azul));
+    --transicao: 0.2s ease;
+}
+
+/* =========================================================
+   2. BASE
+   ========================================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+input, button {
+    font-family: inherit;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--azul-escuro);
+    background-color: var(--fundo-basico);
+    background-image:
+        radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--verde-claro) 38%, transparent), transparent 45%),
+        radial-gradient(circle at 90% 92%, color-mix(in srgb, var(--verde) 30%, transparent), transparent 45%),
+        radial-gradient(color-mix(in srgb, var(--azul) 20%, transparent) 1px, transparent 1px);
+    background-size: auto, auto, 22px 22px;
+}
+
+h1, h2 {
+    color: var(--azul-escuro);
+}
+
+a {
+    color: var(--azul);
+    text-underline-offset: 3px;
+    transition: color var(--transicao);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--azul) 55%, transparent);
+    outline-offset: 2px;
+}
+
+@keyframes surgir {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =========================================================
+   3. SPLASH
+   ========================================================= */
+.splash {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    background: transparent;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.6s ease;
+}
+
+.logo-slides {
+    position: relative;
+    width: min(42vw, 420px);
+    height: min(42vw, 420px);
+    max-width: 76vw;
+    max-height: 55dvh;
+}
+
+.logo-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--azul-escuro) 18%, transparent));
+}
+
+.logo-img.logo-vf {
+    inset: 10%;
+    width: 80%;
+    height: 80%;
+}
+
+.logo-img.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.dots {
+    position: absolute;
+    bottom: 40px;
+    display: flex;
+    gap: 8px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50px;
+    background: var(--verde-claro);
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    background: var(--azul);
+    width: 22px;
+}
+
+.splash.saindo {
+    opacity: 0;
+}
+
+@media (max-width: 600px) {
+    .logo-slides {
+        width: min(58vw, 280px);
+        height: min(58vw, 280px);
+        max-height: 50dvh;
+    }
+}
+
+/* =========================================================
+   4. LOGIN, CADASTRO E PREFERÊNCIAS: card e formulário
+   ========================================================= */
+.login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 24px 16px;
+}
+
+.card-login {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    padding: 28px 24px 24px;
+    background-color: white;
+    border: 2px solid var(--verde-claro);
+    border-radius: var(--raio-card);
+    box-shadow: var(--sombra-card);
+    animation: surgir 0.5s ease both;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.card-login label,
+.card-login legend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--azul-escuro);
+}
+
+.card-login input:is([type="text"], [type="email"], [type="password"], [type="number"]) {
+    width: 100%;
+    padding: 13px 14px;
+    background-color: white;
+    border: 1px solid var(--azul);
+    border-radius: var(--raio-campo);
+    font-size: 1rem;
+    color: var(--azul-escuro);
+    box-shadow: inset 0 1px 3px color-mix(in srgb, var(--azul-escuro) 10%, transparent);
+    transition: box-shadow var(--transicao), border-color var(--transicao);
+}
+
+.card-login input:is([type="text"], [type="email"], [type="password"], [type="number"])::placeholder {
+    color: color-mix(in srgb, var(--azul-escuro) 45%, white);
+}
+
+.card-login input:is([type="text"], [type="email"], [type="password"], [type="number"]):focus {
+    outline: none;
+    border-color: var(--azul);
+    box-shadow: var(--brilho-foco);
+}
+
+.erro {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--erro);
+}
+
+.erro::before {
+    content: "⚠ ";
+}
+
+.erro:empty {
+    display: none;
+}
+
+/* ---------- cabeçalho do card ---------- */
+.cabecalho-login,
+.cabecalho-preferencias {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid color-mix(in srgb, var(--verde-claro) 70%, transparent);
+}
+
+.cabecalho-login h2,
+.cabecalho-preferencias h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.logo-login {
+    width: 68px;
+    height: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--azul-escuro) 18%, transparent));
+}
+
+.btn-voltar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--verde-claro);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    color: var(--azul-escuro);
+    text-decoration: none;
+    transition: background-color var(--transicao), color var(--transicao);
+}
+
+.btn-voltar:hover {
+    background-color: var(--azul);
+    color: white;
+    text-decoration: none;
+}
+
+.subtitulo {
+    margin: -6px 0 16px;
+    font-size: 0.9rem;
+}
+
+/* ---------- botão principal ---------- */
+.btn-entrar {
+    padding: 13px;
+    border: 1px solid var(--azul);
+    border-radius: var(--raio-campo);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--azul-escuro);
+    cursor: pointer;
+    background-image: linear-gradient(90deg, var(--verde-claro) 0%, var(--verde) 45%, var(--azul) 75%, var(--azul-escuro) 100%);
+    background-size: 250% 100%;
+    background-position: 0% 0;
+    transition: background-position 0.4s ease, color var(--transicao),
+                transform var(--transicao), box-shadow var(--transicao);
+}
+
+.btn-entrar:hover {
+    background-position: 100% 0;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--azul) 35%, transparent);
+}
+
+.btn-entrar:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* ---------- links ---------- */
+.link-esqueci {
+    display: block;
+    margin-top: 16px;
+    font-size: 0.9rem;
+}
+
+.texto-cadastro {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.texto-cadastro a {
+    font-weight: bold;
+}
+
+a:hover {
+    color: var(--azul-escuro);
+}
+
+/* ---------- campo de senha com olho ---------- */
+.campo-senha {
+    position: relative;
+}
+
+.card-login .campo-senha input {
+    width: 100%;
+    padding-right: 48px;
+}
+
+.btn-mostrar-senha {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color var(--transicao);
+    color: var(--azul-escuro);
+}
+
+.btn-mostrar-senha svg {
+    display: block;
+    pointer-events: none;
+}
+
+.btn-mostrar-senha:hover {
+    background-color: color-mix(in srgb, var(--verde-claro) 40%, transparent);
+}
+
+/* ---------- termos de uso ---------- */
+.termos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-login .termos label {
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.termos input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--azul);
+}

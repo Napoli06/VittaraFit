@@ -5,43 +5,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar | VittaraFit</title>
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 
 <body>
-    <main class="login-page">
-        <section class="login-intro">
-            <p class="eyebrow">VittaraFit</p>
-            <h1>Cuide da sua rotina com mais leveza.</h1>
-            <p class="intro-text">Sua alimentação consciente e organizada de verdade!</p>
-        </section>
+    <div class="login">
+        <div class="card-login">
 
-        <section class="login-panel" aria-labelledby="login-title">
-            <div class="brand-mark">
-                <img src="logo VF.png" alt="Logo da VittaraFit" class="logo">
+            <div class="cabecalho-login">
+                <img src="logo-abrev.png" alt="Logo da VittaraFit" class="logo-login">
+                <h2 id="login-title">Bem-vindo de volta!</h2>
             </div>
-            <p class="eyebrow">Acesso pessoal</p>
-            <h2 id="login-title">Bem-vindo de volta</h2>
-            <p class="panel-text">Entre para continuar sua jornada.</p>
 
             <form id="login-form">
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" autocomplete="email" placeholder="seu@email.com" required>
+                <label for="email">E-mail</label>
+                <input id="email" name="email" type="email" autocomplete="email"
+                       placeholder="seuemail@exemplo.com" required>
 
-                <div class="password-label">
-                    <label for="password">Senha</label>
-                    <button type="button" id="toggle-password" class="text-button">Mostrar</button>
+                <label for="password">Senha</label>
+                <div class="campo-senha">
+                    <input id="password" name="password" type="password"
+                           autocomplete="current-password" placeholder="Digite sua senha" required>
+                    <button type="button" id="toggle-password" class="btn-mostrar-senha"
+                            aria-label="Mostrar senha"></button>
                 </div>
-                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
 
-                <p id="login-message" class="message" role="alert" aria-live="polite"></p>
-                <button type="submit" class="submit-button">Entrar</button>
+                <p id="login-message" class="erro" role="alert" aria-live="polite"></p>
+                <button type="submit" class="btn-entrar submit-button">Entrar</button>
             </form>
 
-            <p class="account-link">Ainda não tem uma conta? <a href="cadastro.html">Criar cadastro</a></p>
-        </section>
-    </main>
+            <p class="texto-cadastro">
+                Ainda não tem uma conta? <a href="cadastro.html">Criar conta</a>
+            </p>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>

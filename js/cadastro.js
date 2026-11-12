@@ -19,14 +19,10 @@ const confirmPasswordInput = document.getElementById('confirm-password');
 const signupMessage = document.getElementById('signup-message');
 const submitButton = signupForm.querySelector('.submit-button');
 const togglePassword = document.getElementById('toggle-password');
+const toggleConfirm = document.getElementById('toggle-confirm');
 
-// Exibe ou oculta as duas senhas ao clicar no botão.
-togglePassword.addEventListener('click', () => {
-    const showingPassword = passwordInput.type === 'text';
-    passwordInput.type = showingPassword ? 'password' : 'text';
-    confirmPasswordInput.type = showingPassword ? 'password' : 'text';
-    togglePassword.textContent = showingPassword ? 'Mostrar' : 'Ocultar';
-});
+configurarOlho(passwordInput, togglePassword);
+configurarOlho(confirmPasswordInput, toggleConfirm);
 
 // Controla o envio do formulário e o fluxo de criação da conta.
 signupForm.addEventListener('submit', async event => {

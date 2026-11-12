@@ -5,49 +5,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Criar conta | VittaraFit</title>
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/cadastro.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 
-<body class="signup-body">
-    <main class="login-page signup-page">
-        <section class="login-intro">
-            <p class="eyebrow">VittaraFit</p>
-            <h1>Comece uma rotina mais leve.</h1>
-            <p class="intro-text">Crie sua conta para organizar sua alimentação e acompanhar seu bem-estar.</p>
-        </section>
+<body>
+    <div class="login">
+        <div class="card-login">
 
-        <section class="login-panel" aria-labelledby="signup-title">
-            <div class="brand-mark">
-                <img src="logo VF.png" alt="Logo da VittaraFit" class="logo">
+            <div class="cabecalho-login">
+                <img src="logo-abrev.png" alt="Logo da VittaraFit" class="logo-login">
+                <h2 id="signup-title">Faça seu cadastro!</h2>
             </div>
-            <p class="eyebrow">Novo acesso</p>
-            <h2 id="signup-title">Criar conta</h2>
-            <p class="panel-text">Preencha seus dados para começar.</p>
 
             <form id="signup-form">
                 <label for="name">Nome</label>
-                <input id="name" name="name" type="text" autocomplete="name" placeholder="Como podemos chamar você?" required>
+                <input id="name" name="name" type="text" autocomplete="name"
+                       placeholder="Como podemos chamar você?" required>
 
-                <label for="email" class="field-spaced">Email</label>
-                <input id="email" name="email" type="email" autocomplete="email" placeholder="seu@email.com" required>
+                <label for="email">E-mail</label>
+                <input id="email" name="email" type="email" autocomplete="email"
+                       placeholder="seuemail@exemplo.com" required>
 
-                <div class="password-label">
-                    <label for="password">Senha</label>
-                    <button type="button" id="toggle-password" class="text-button">Mostrar</button>
+                <label for="password">Senha</label>
+                <div class="campo-senha">
+                    <input id="password" name="password" type="password" autocomplete="new-password"
+                           placeholder="Mínimo de 6 caracteres" minlength="6" required>
+                    <button type="button" id="toggle-password" class="btn-mostrar-senha"
+                            aria-label="Mostrar senha"></button>
                 </div>
-                <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres" minlength="6" required>
 
-                <label for="confirm-password" class="field-spaced">Confirmar senha</label>
-                <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" placeholder="Repita sua senha" minlength="6" required>
+                <label for="confirm-password">Confirmar senha</label>
+                <div class="campo-senha">
+                    <input id="confirm-password" name="confirm-password" type="password"
+                           autocomplete="new-password" placeholder="Repita sua senha" minlength="6" required>
+                    <button type="button" id="toggle-confirm" class="btn-mostrar-senha"
+                            aria-label="Mostrar confirmação de senha"></button>
+                </div>
 
-                <p id="signup-message" class="message" role="alert" aria-live="polite"></p>
-                <button type="submit" class="submit-button">Criar minha conta</button>
+                <p id="signup-message" class="erro" role="alert" aria-live="polite"></p>
+                <button type="submit" class="btn-entrar submit-button">Criar minha conta</button>
             </form>
 
-            <p class="account-link">Já tem uma conta? <a href="login.html">Entrar</a></p>
-        </section>
-    </main>
+            <p class="texto-cadastro">
+                Já tem uma conta? <a href="login.html">Entrar</a>
+            </p>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
