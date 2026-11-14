@@ -20,57 +20,63 @@ window.VittaraHome = {
 
   montar() {
     document.getElementById('home-comeco').innerHTML = `
-      <div class="home-saudacao">
-        <h1>Olá, <span id="h-nome" data-campo="nome"></span>! 👋</h1>
-        <p>Que bom ter você aqui!</p>
+        <div class="home-topo-row">
+          <div class="home-saudacao">
+            <h1>Olá, <span id="h-nome" onclick="VittaraHome.abrirModalNome()" title="Clique 
+            para alterar seu nome"></span>! 👋</h1>
+            <p>Que bom ter você aqui!</p>
+          </div>
+        <div id="home-setup-slot"></div>
       </div>
       <div class="card">
         <h2>Resumo do dia</h2>
-        <div class="home-resumo">
-          <div class="stat" data-campo="calorias">
-            <strong id="h-calorias"></strong>
-            <span>Calorias<br>restantes</span>
+        <div class="home-resumo home-resumo--quatro">
+          <div class="stat">
+            <strong id="h-calorias-consumidas">0</strong>
+            <span>Calorias<br>consumidas</span>
           </div>
-          <div class="stat" data-campo="aguaMl">
-            <strong id="h-agua" class="destaque"></strong>
+          <div class="stat">
+            <strong id="h-calorias-gastas">0</strong>
+            <span>Calorias<br>gastas</span>
+          </div>
+          <div class="stat">
+            <strong id="h-agua" class="destaque">0</strong>
             <span>ml<br>Água</span>
           </div>
-          <div class="stat" data-campo="atividade">
-            <strong id="h-atividade"></strong>
+          <div class="stat">
+            <strong id="h-atividade">0</strong>
             <span>min<br>Atividade</span>
           </div>
         </div>
       </div>`;
 
     document.getElementById('home-scanner').innerHTML = `
-      <div class="home-atalhos">
+      <div class="home-atalhos-coluna">
         <button onclick="VittaraRouter.navigate('scanner')">
-          <i class="ti ti-scan"></i><span>Escanear<br>Alimento</span>
+          <div class="home-atalho-esq">
+            <i class="ti ti-scan"></i>
+            <span>Escanear Alimento</span>
+          </div>
+          <i class="ti ti-chevron-right seta"></i>
         </button>
         <button onclick="VittaraRouter.navigate('planner')">
-          <i class="ti ti-calendar-week"></i><span>Planejamento<br>Alimentar</span>
-        </button>
-        <button onclick="VittaraRouter.navigate('profile')">
-          <i class="ti ti-user"></i><span>Meu<br>perfil</span>
+          <div class="home-atalho-esq">
+            <i class="ti ti-calendar-week"></i>
+            <span>Planejamento Alimentar</span>
+          </div>
+          <i class="ti ti-chevron-right seta"></i>
         </button>
         <button onclick="VittaraRouter.navigate('list')">
-          <i class="ti ti-shopping-cart"></i><span>Lista de<br>Compras</span>
+          <div class="home-atalho-esq">
+            <i class="ti ti-shopping-cart"></i>
+            <span>Lista de Compras</span>
+          </div>
+          <i class="ti ti-chevron-right seta"></i>
         </button>
       </div>`;
 
-    document.getElementById('home-agua').innerHTML = `
-      <div class="card">
-        <h2>Meta diária</h2>
-        <div class="home-meta-topo">
-          <p>Beber <span id="h-meta" data-campo="metaAguaL"></span>L de água</p>
-          <i class="ti ti-droplet gota"></i>
-        </div>
-        <div class="home-meta-info">
-          <span id="h-agua-texto"></span>
-          <span id="h-agua-pct"></span>
-        </div>
-        <div class="barra"><div class="barra-cheia" id="h-barra"></div></div>
-      </div>`;
+    const elAgua = document.getElementById('home-agua');
+    if (elAgua) elAgua.innerHTML = '';
 
     this.ligarEventos();
     this.montado = true;
@@ -88,25 +94,20 @@ window.VittaraHome = {
     if (el) el.textContent = valor;
   },
 
-  render() {
+    render() {
+    // Garante que a página foi montada antes de tentar desenhar nela
+    if (!this.montado) this.montar();
+
     const { user, today } = VittaraState;
     const nome = user.name || 'Usuário';
     this.texto('h-nome', nome.split(' ')[0]);
 
-    const restantes = Math.max(0, today.alvoKcal - today.kcalConsumidas);
-    this.texto('h-calorias', restantes.toLocaleString('pt-BR'));
-    this.texto('h-agua', today.agua.consumida.toLocaleString('pt-BR'));
-    this.texto('h-atividade', today.atividade);
+    this.texto('h-calorias-consumidas', (today.kcalConsumidas || 0).toLocaleString('pt-BR'));
+    this.texto('h-calorias-gastas',     (today.kcalGastas || 0).toLocaleString('pt-BR'));
+    this.texto('h-agua',                (today.aguaMl || 0).toLocaleString('pt-BR'));
+    this.texto('h-atividade',           (today.atividadeMin || 0));
 
-    const metaL = user.metaAguaL || 2;
-    this.texto('h-meta', metaL);
-
-    const litros = today.agua.consumida / 1000;
-    const pct = Math.min(100, Math.round((today.agua.consumida / (metaL * 1000)) * 100));
-    this.texto('h-agua-texto', litros.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' / ' + metaL + 'L');
-    this.texto('h-agua-pct', pct + '%');
-    document.getElementById('h-barra').style.width = pct + '%';
-
+    this.mostrarBannerSetup();
   },
 
   campos: {
@@ -142,7 +143,12 @@ window.VittaraHome = {
     }
   },
 
-  async editar(campo) {
+    async editar(campo) {
+    if (campo === 'nome') {
+      this.abrirModalNome();
+      return;
+    }
+
     const cfg = this.campos[campo];
     const resposta = prompt(cfg.rotulo + ':', cfg.ler());
     if (resposta === null) return;
@@ -169,28 +175,95 @@ window.VittaraHome = {
     }
   },
 
+  abrirModalNome() {
+    const overlay = document.getElementById('modal-overlay');
+    const body = document.getElementById('modal-body');
+    const nomeAtual = VittaraState.user.name || '';
+
+    body.innerHTML = `
+      <div class="setup-modal">
+        <div class="setup-topo">
+          <h2>Quer atualizar seu nome de perfil?</h2>
+          <p>Como gostaria de ser chamado?</p>
+        </div>
+
+        <form onsubmit="event.preventDefault(); VittaraHome.salvarNovoNome();">
+          <div class="setup-secao">
+            <label class="setup-label" for="input-novo-nome">Nome de perfil</label>
+            <input type="text" id="input-novo-nome" class="setup-input" 
+                   placeholder="Digite seu nome..." value="${nomeAtual}" autocomplete="off">
+          </div>
+
+          <div class="setup-acoes">
+            <button type="button" class="setup-btn-skip" onclick="VittaraHome.fecharModalNome()">Cancelar</button>
+            <button type="submit" class="setup-btn-salvar">Salvar nome ✓</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    overlay.classList.add('active');
+
+    // Foca automaticamente no campo de texto
+    setTimeout(() => {
+      const inp = document.getElementById('input-novo-nome');
+      if (inp) {
+        inp.focus();
+        inp.select();
+      }
+    }, 100);
+  },
+
+  fecharModalNome() {
+    document.getElementById('modal-overlay').classList.remove('active');
+  },
+
+  async salvarNovoNome() {
+    const input = document.getElementById('input-novo-nome');
+    const novoNome = input ? input.value.trim() : '';
+
+    if (!novoNome) {
+      VittaraUI.toast('Digite um nome válido', 'error');
+      return;
+    }
+
+    VittaraState.user.name = novoNome;
+    this.render();
+    if (window.VittaraProfile) VittaraProfile.render();
+    this.fecharModalNome();
+
+    try {
+      await VittaraDB.updateProfile({ name: novoNome });
+      VittaraUI.toast('Nome atualizado! ✨', 'success');
+    } catch (e) {
+      VittaraUI.toast('Erro ao salvar no banco de dados', 'error');
+    }
+  },
+
   mostrarBannerSetup() {
-    if (document.getElementById('setup-banner')) return; // já existe
+    const slot = document.getElementById('home-setup-slot');
+    if (!slot) return;
+
     const { user } = VittaraState;
-    const pulou = sessionStorage.getItem('setupSkipped') === '1';
-    if (user.profileComplete || pulou) return;
 
-    const banner = document.createElement('div');
-    banner.id = 'setup-banner';
-    banner.className = 'setup-banner';
-    banner.innerHTML = `
-            <div class="setup-banner-conteudo">
-                <i class="ti ti-settings"></i>
-                <div>
-                    <strong>Termine de configurar seu perfil</strong>
-                    <span>Adicione seus objetivos, medidas e preferências</span>
-                </div>
-            </div>
-            <button onclick="VittaraSetup.abrir()" class="setup-banner-btn">Configurar →</button>
-        `;
+    // Se o perfil já estiver concluído (profileComplete === true), esconde o botão
+    if (user.profileComplete) {
+      slot.innerHTML = '';
+      return;
+    }
 
-    // Insere no topo da home, antes do primeiro filho
-    const pageHome = document.getElementById('page-home');
-    pageHome.insertBefore(banner, pageHome.firstChild);
+    // Se o perfil for novo/incompleto (false ou não preenchido), exibe o botão
+    slot.innerHTML = `
+      <button class="setup-pill-btn" onclick="VittaraSetup.abrir()" title="Terminar de configurar seu perfil">
+        <div class="setup-pill-icone">
+          <i class="ti ti-settings"></i>
+        </div>
+        <div class="setup-pill-textos">
+          <strong>Complete seu perfil</strong>
+          <span>Defina metas e medidas</span>
+        </div>
+        <i class="ti ti-chevron-right setup-pill-seta"></i>
+      </button>
+    `;
   },
 };

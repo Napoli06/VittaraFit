@@ -1,124 +1,222 @@
 #page-home {
     --h-card: var(--bg-surface);
-    --h-borda: rgba(31, 54, 61, 0.14);
+    --h-borda: rgba(31, 54, 61, 0.12);
     --h-suave: var(--c-azure-dark);
     --h-azul: var(--c-azure);
+    padding: 16px 14px;
 }
 
-.home-saudacao { margin-bottom: 16px; }
-.home-saudacao h1 { font-size: 20px; }
-.home-saudacao p { font-size: 13px; color: var(--h-suave); margin-top: 2px; }
-#h-nome { cursor: pointer; }
+/* Saudação no topo */
+.home-topo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
 
-#page-home .card{
+.home-saudacao h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.home-saudacao p {
+    font-size: 0.8rem;
+    color: var(--h-suave);
+    margin: 3px 0 0;
+}
+
+#h-nome {
+    cursor: pointer;
+    text-decoration: underline dotted rgba(31, 54, 61, 0.3);
+    text-underline-offset: 4px;
+}
+
+/* Botão Compacto de Terminar Perfil */
+.setup-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--c-azure-dark);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 4px 12px rgba(31, 54, 61, 0.12);
+    flex-shrink: 0;
+}
+
+.setup-pill-icone {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(182, 220, 187, 0.2);
+    display: grid;
+    place-items: center;
+    color: var(--c-green-pastel);
+    font-size: 0.95rem;
+}
+
+.setup-pill-textos strong {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.setup-pill-textos span {
+    font-size: 0.62rem;
+    color: var(--c-green-muted);
+}
+
+.setup-pill-seta {
+    font-size: 0.9rem;
+    color: var(--c-green-pastel);
+}
+
+/* Card Padrão da Home */
+#page-home .card {
     background: var(--h-card);
     border: 1px solid var(--h-borda);
     border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-}
-#page-home .card h2{
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--h-suave);
-    margin-bottom: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
 }
 
-.home-resumo {
+#page-home .card h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--c-teal);
+    margin: 0 0 12px;
+}
+
+/* Resumo do dia: 4 dados organizados perfeitamente em 2 colunas para tela de celular */
+.home-resumo--quatro {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    text-align: center;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
 }
 
+/* Estatísticas integradas no fundo verde sem caixas brancas */
 .stat {
-    padding: 4px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background .2s;
+    background: transparent !important;
+    border: none !important;
+    padding: 6px 4px;
+    text-align: center;
+    cursor: default;
 }
 
 .stat:hover {
-    background: rgba(182, 220, 187, 0.45);
-}
-.stat strong { 
-    display: block;
-    font-size: 22px;
-}
-.stat strong.destaque { 
-    color: var(--h-azul); 
-}
-.stat span {
-     font-size: 11px; color: var(--h-suave);
+    background: transparent !important;
 }
 
-.home-atalhos {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
+.stat strong {
+    display: block;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--c-azure-dark);
+    line-height: 1.1;
+    font-family: var(--font-body) !important;
 }
-.home-atalhos button {
+
+.stat strong.destaque {
+    color: var(--h-azul);
+}
+
+.stat span {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.72rem;
+    color: var(--c-teal);
+    font-weight: 500;
+    line-height: 1.25;
+    font-family: var(--font-body) !important;
+}
+
+/* Botões em lista vertical (um embaixo do outro) */
+.home-atalhos-coluna {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    width: 100%;
+}
+
+.home-atalhos-coluna button {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    width: 100%;
     background: var(--h-card);
     border: 1px solid var(--h-borda);
     border-radius: 16px;
-    padding: 16px 12px;
-    color: inherit;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: left;
+    padding: 15px 16px;
     cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    font-family: var(--font-body) !important;
+    touch-action: manipulation;
+    transition: transform 0.15s ease, background 0.15s ease;
 }
-.home-atalhos button:hover {
+
+.home-atalhos-coluna button:active {
+    transform: scale(0.98);
     background: var(--c-green-pastel);
-    border-color: var(--c-green-muted);
-    transform: translateY(-2px);
-}
-.home-atalhos .ti{
-    font-size: 26px;
-    color: var(--h-azul);
 }
 
-.home-meta-topo {
+.home-atalho-esq {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-}
-.home-meta-topo p {
-    font-size: 14px;
-    font-weight: 600;
-}
-#h-meta {
-    cursor: pointer;
-    color: var(--h-azul);
-}
-.gota {
-    font-size: 28px;
-    color: var(--h-azul);
-}
-.home-meta-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--h-suave);
-    margin: 8px 0 6px;
+    gap: 14px;
 }
 
-#page-home .barra {
-    height: 6px;
-    background: var(--h-borda);
-    border-radius: 99px;
-    overflow: hidden;
-}
-.barra-cheia {
-    height: 100%;
-    width: 0;
-    background: var(--h-azul);
-    border-radius: 99px;
-    transition: widht .6s ease;
+.home-atalho-esq .ti {
+    font-size: 1.6rem;
+    color: var(--h-azul);
+    display: grid;
+    place-items: center;
 }
 
+/* Tipografia idêntica à dos Objetivos */
+.home-atalho-esq span {
+    font-family: var(--font-body) !important;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--c-azure-dark);
+    letter-spacing: -0.01em;
+}
+
+.home-atalhos-coluna .seta {
+    font-size: 1.15rem;
+    color: var(--c-teal);
+    transition: transform 0.15s ease;
+}
+
+.home-atalhos-coluna button:hover .seta {
+    transform: translateX(3px);
+}
+
+/* Texto com a mesma tipografia, peso 700 e tom escuro dos títulos de Objetivos */
+.home-atalhos--tres button span {
+    font-family: var(--font-body) !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--c-azure-dark);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+
+/* Se a tela for muito estreita (menos de 360px), empilha o botão do perfil */
+@media (max-width: 360px) {
+    .home-topo-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .setup-pill-btn {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

@@ -36,9 +36,6 @@ window.VittaraProfile = {
                     <h2 id="p-nome">—</h2>
                     <span id="p-email" class="profile-email">—</span>
                 </div>
-                <button class="profile-icon-btn" onclick="VittaraSetup.abrir()" title="Editar perfil">
-                    <i class="ti ti-settings"></i>
-                </button>
             </div>
 
             <!-- Dados principais -->
@@ -61,6 +58,25 @@ window.VittaraProfile = {
                         <span class="profile-dado-label">IMC</span>
                         <span id="p-imc" class="profile-dado-valor">—</span>
                     </div>
+
+                    <!-- NOVAS METAS DE SAÚDE -->
+                    <div class="profile-dado">
+                        <span class="profile-dado-label">Calorias a Ingerir</span>
+                        <span id="p-kcal-consumo" class="profile-dado-valor">—</span>
+                    </div>
+                    <div class="profile-dado">
+                        <span class="profile-dado-label">Calorias a Gastar</span>
+                        <span id="p-kcal-gasto" class="profile-dado-valor">—</span>
+                    </div>
+                    <div class="profile-dado">
+                        <span class="profile-dado-label">Atividade Física</span>
+                        <span id="p-atividade" class="profile-dado-valor">—</span>
+                    </div>
+                    <div class="profile-dado">
+                        <span class="profile-dado-label">Meta de Água</span>
+                        <span id="p-agua" class="profile-dado-valor">—</span>
+                    </div>
+
                     <div class="profile-dado profile-dado--full">
                         <span class="profile-dado-label">Restrições</span>
                         <span id="p-restricoes" class="profile-dado-valor">—</span>
@@ -68,10 +84,6 @@ window.VittaraProfile = {
                     <div class="profile-dado profile-dado--full">
                         <span class="profile-dado-label">Alimentos preferidos</span>
                         <span id="p-favoritos" class="profile-dado-valor">—</span>
-                    </div>
-                    <div class="profile-dado profile-dado--full">
-                        <span class="profile-dado-label">Meta de Água</span>
-                        <span id="p-agua" class="profile-dado-valor">—</span>
                     </div>
                 </div>
             </div>
@@ -107,8 +119,11 @@ window.VittaraProfile = {
         this._t('p-imc', VittaraState.bmi || '—');
         this._t('p-restricoes', (user.restricoes?.length) ? user.restricoes.join(', ') : 'Nenhuma');
         this._t('p-favoritos', (user.alimentosFavoritos?.length) ? user.alimentosFavoritos.join(',') : '—');
-        this._t('p-agua', (user.metaAguaL || 2) + ' L/dia');
-
+        this._t('p-kcal-consumo', (user.metaKcalConsumo || 2000) + ' kcal');
+        this._t('p-kcal-gasto',   (user.metaKcalGasto || 500) + ' kcal');
+        this._t('p-atividade',    (user.metaAtividadeMin || 60) + ' min');
+        this._t('p-agua',         (user.metaAguaL || 2) + ' L/dia');
+        
         // Carrega foto de perfil se existir
         if (user.fotoPerfil) {
             this._mostrarFoto(user.fotoPerfil);

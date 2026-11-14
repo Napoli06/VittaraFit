@@ -2,123 +2,127 @@
 *::before,
 *::after {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Remove o quadrado cinza de toque no mobile */
 }
 
 .page {
-    display: none; /* página começa escondida*/
+    display: none;
+    padding: 16px 14px;
+    animation: fadeIn 0.18s ease;
 }
 
 .page.active {
-    display: block; /* só aparece quando o router ativa a classe*/
+    display: block;
 }
 
-html,
-body {
-    min-width: 320px;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+html {
     min-height: 100%;
     margin: 0;
 }
 
 body {
+    min-height: 100%;
+    margin: 0;
     color: var(--text-primary);
-    background: var(--bg-base);
+    background: #e9ece4; /* Fundo sutil atrás do app em telas de PC */
     font-family: var(--font-body);
+    overflow-x: hidden; /* Trava vazamentos laterais de forma limpa apenas no body */
 }
 
+/* Container do App com aspecto de aplicativo portátil */
 #app {
     min-height: 100dvh;
-    padding-bottom: calc(var(--nav-height) + 34px);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
     background: var(--bg-base);
+    padding-bottom: calc(var(--nav-height) + 36px + env(safe-area-inset-bottom, 0px));
+    position: relative;
+    box-shadow: 0 0 35px rgba(31, 54, 61, 0.08);
+    /* Removido o overflow-x daqui para destravar a rolagem natural no meio da tela */
 }
 
+/* Cabeçalho */
 .app-header {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
     display: flex;
     align-items: center;
-    height: var(--header-height);
-    padding: 0 clamp(16px, 2vw, 28px);
+    justify-content: flex-start;
+    height: 72px; /* Aumentado para acomodar a logo maior */
+    padding: 0 16px;
     background: var(--bg-base);
-    border-bottom: 1px solid rgba(31, 54, 61, 0.12);
+    border-bottom: 1px solid rgba(31, 54, 61, 0.08);
 }
 
 .app-logo {
     display: block;
-    width: 188px;
-    height: 72px;
-    object-fit: cover;
-    object-position: center;
+    height: 56px; /* Aumentada de 42px para 56px! */
+    width: auto;
+    max-width: 170px;
+    object-fit: contain;
 }
 
 .pages-container {
     width: 100%;
-    max-width: 1440px;
-    min-height: calc(100dvh - var(--header-height));
-    margin: 0 auto;
 }
 
+/* Barra de Navegação Inferior (Fixada no rodapé estilo App) */
 .bottom-nav {
     position: fixed;
     z-index: 50;
-    right: 50%;
-    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: max(10px, env(safe-area-inset-bottom, 8px));
+    width: min(460px, calc(100% - 16px));
     display: grid;
-    width: min(680px, calc(100% - 32px));
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    padding: 8px;
-    transform: translateX(50%);
-    background: rgba(245, 248, 242, 0.96);
-    border: 1px solid rgba(31, 54, 61, 0.14);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2px;
+    padding: 6px 4px;
+    background: rgba(245, 248, 242, 0.95);
+    border: 1px solid rgba(31, 54, 61, 0.12);
     border-radius: 20px;
-    box-shadow: 0 12px 36px rgba(31, 54, 61, 0.16);
+    box-shadow: 0 8px 30px rgba(31, 54, 61, 0.14);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .nav-item {
     position: relative;
     display: flex;
-    min-width: 0;
-    min-height: 54px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 6px 8px;
+    min-height: 46px;
+    gap: 2px;
+    padding: 4px 1px;
     color: var(--text-muted);
     background: transparent;
     border: 0;
-    border-radius: 13px;
+    border-radius: 12px;
     font-family: var(--font-body);
-    font-size: 0.72rem;
-    font-weight: 500;
+    font-size: 0.62rem;
+    font-weight: 600;
     line-height: 1.1;
     cursor: pointer;
-    transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease;
-}
-
-.nav-item::before {
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    width: 18px;
-    height: 3px;
-    content: '';
-    transform: translateX(-50%) scaleX(0);
-    background: var(--c-green-muted);
-    border-radius: var(--radius-full);
-    transition: transform 0.18s ease;
+    touch-action: manipulation;
+    transition: background 0.18s ease, color 0.18s ease;
 }
 
 .nav-item i {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     line-height: 1;
 }
 
-.nav-item:hover {
+.nav-item:hover,
+.nav-item:active {
     color: var(--text-primary);
-    background: rgba(112, 169, 161, 0.2);
 }
 
 .nav-item.active {
@@ -126,55 +130,16 @@ body {
     background: var(--c-green-pastel);
 }
 
-.nav-item.active::before {
-    transform: translateX(-50%) scaleX(1);
+/* Inputs adaptados para touch mobile (evita auto-zoom do Safari) */
+input, select, textarea {
+    font-size: 16px !important;
 }
 
-.nav-item:focus-visible {
-    outline: 2px solid var(--c-green-muted);
-    outline-offset: 2px;
-}
-
-@media (max-width: 600px) {
-    #app {
-        padding-bottom: calc(var(--nav-height) + 24px);
+@media (max-width: 400px) {
+    .nav-item span {
+        font-size: 0.58rem;
     }
-
-    .app-header {
-        padding: 0 16px;
-    }
-
-    .app-logo {
-        width: 162px;
-        height: 64px;
-    }
-
-    .bottom-nav {
-        right: 8px;
-        bottom: 8px;
-        width: auto;
-        left: 8px;
-        gap: 2px;
-        padding: 6px;
-        transform: none;
-        border-radius: 17px;
-    }
-
-    .nav-item {
-        min-height: 50px;
-        gap: 2px;
-        padding: 6px 2px;
-        font-size: 0.64rem;
-    }
-
     .nav-item i {
-        font-size: 1.15rem;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .nav-item,
-    .nav-item::before {
-        transition: none;
+        font-size: 1.05rem;
     }
 }

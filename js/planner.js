@@ -1,32 +1,67 @@
 window.VittaraPlanner = {
-
-    refresh() {
-        this.montar();
-        this.render();
-    },
+    montado: false,
+    diaSelecionadoKey: '',
 
     _diasSemana: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
     _refeicoes: ['Café da manhã', 'Lanche da manhã', 'Almoço', 'Lanche da tarde', 'Jantar'],
 
+    refresh() {
+        if (!this.montado) this.montar();
+        this.render();
+    },
+
     montar() {
         const el = document.getElementById('planner-semanal');
+        if (!el) return;
+
         const hoje = new Date();
-        const diasHtml = Array.from({ length: 7 }, (_, i) => {
+        const diasSemana = [];
+
+        // Sincroniza com os 7 dias da semana atual no calendário gregoriano
+        for (let i = 0; i < 7; i++) {
             const d = new Date(hoje);
             d.setDate(hoje.getDate() - hoje.getDay() + i);
-            const dia = d.getDate();
-            const ativo = i === hoje.getDay() ? 'ativo' : '';
-            return `<button class="planner-dia ${ativo}" data-idx="${i}">
-                        <span class="planner-dia-nome">${this._diasSemana[i]}</span>
-                        <span class="planner-dia-num">${dia}</span>
-                    </button>`;
-        }).join('');
+            const mesStr = String(d.getMonth() + 1).padStart(2, '0');
+            const diaStr = String(d.getDate()).padStart(2, '0');
+            const dataKey = `${d.getFullYear()}-${mesStr}-${diaStr}`;
+            diasSemana.push({
+                nome: this._diasSemana[d.getDay()],
+                numero: d.getDate(),
+                key: dataKey,
+                isHoje: d.toDateString() === hoje.toDateString()
+            });
+        }
+
+        if (!this.diaSelecionadoKey) {
+            const hojeObj = diasSemana.find(d => d.isHoje) || diasSemana[0];
+            this.diaSelecionadoKey = hojeObj.key;
+        }
+
+        const diasHtml = diasSemana.map(d => `
+            <button class="planner-dia ${d.key === this.diaSelecionadoKey ? 'ativo' : ''}" data-key="${d.key}">
+                <span class="planner-dia-nome">${d.nome}</span>
+                <span class="planner-dia-num">${d.numero}</span>
+            </button>
+        `).join('');
 
         el.innerHTML = `
         <div class="planner-wrap">
             <div class="planner-titulo-row">
-                <h2 class="planner-titulo">Planejamento Alimentar</h2>
+                <div class="planner-titulo-esq">
+                    <h2 class="planner-titulo">Planejamento Alimentar</h2>
+                    <button type="button" class="setup-obs-btn" onclick="VittaraPlanner.toggleObs(this)" title="Orientações médicas">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/></svg>
+                    </button>
+                </div>
+                <button class="planner-btn-novo" onclick="VittaraPlanner.abrirModalAlimento()" title="Adicionar ao Planejamento">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
             </div>
+
+            <div class="setup-obs" id="planner-obs" hidden>
+                O planejamento alimentar deve ser muito bem estruturado por um profissional da saúde conforme suas necessidades e objetivos para melhor aproveitamento do aplicativo em segurança.
+            </div>
+
             <div class="planner-semana">${diasHtml}</div>
             <div id="planner-refeicoes"></div>
         </div>`;
@@ -35,29 +70,215 @@ window.VittaraPlanner = {
             btn.addEventListener('click', () => {
                 el.querySelectorAll('.planner-dia').forEach(b => b.classList.remove('ativo'));
                 btn.classList.add('ativo');
+                this.diaSelecionadoKey = btn.dataset.key;
                 this.render();
             });
         });
+
+        this.montado = true;
+    },
+
+    toggleObs(btn) {
+        const obs = document.getElementById('planner-obs');
+        if (obs) obs.hidden = !obs.hidden;
     },
 
     render() {
         const container = document.getElementById('planner-refeicoes');
         if (!container) return;
 
-        const refeicoesHtml = this._refeicoes.map((nome, i) => `
+        const planoDia = VittaraState.mealPlan[this.diaSelecionadoKey] || {};
+
+        container.innerHTML = this._refeicoes.map(refeicao => {
+            const alimentos = planoDia[refeicao] || [];
+            const listaHtml = alimentos.length ? alimentos.map((a, idx) => `
+                <div class="planner-item-alimento">
+                    <span class="planner-item-txt">
+                        <strong>${a.nome}</strong>
+                        <small>${a.medida === 'porcao' ? a.valor + 'g' : a.valor + ' un'}</small>
+                    </span>
+                    <button onclick="VittaraPlanner.removerAlimento('${refeicao}', ${idx})" class="planner-del-btn" title="Excluir">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            `).join('') : '<p class="planner-vazio">Nenhum alimento adicionado</p>';
+
+            return `
             <div class="planner-refeicao-card">
                 <div class="planner-refeicao-header">
-                    <span class="planner-refeicao-nome">${nome}</span>
-                    <button class="planner-add-btn" title="Adicionar alimento">
+                    <span class="planner-refeicao-nome">${refeicao}</span>
+                    <button class="planner-add-btn" onclick="VittaraPlanner.abrirModalAlimento('${refeicao}')" title="Adicionar">
                         <i class="ti ti-plus"></i>
                     </button>
                 </div>
-                <p class="planner-vazio">Nenhum alimento adicionado</p>
-            </div>
+                <div class="planner-refeicao-itens">${listaHtml}</div>
+            </div>`;
+        }).join('');
+    },
+
+    // ─── MODAL ELEGANTE DE ADICIONAR ALIMENTOS ───────────────────────────
+    abrirModalAlimento(refeicaoPrevia = '') {
+        const overlay = document.getElementById('modal-overlay');
+        const body    = document.getElementById('modal-body');
+
+        const opcoesRefeicao = this._refeicoes.map(r => `
+            <option value="${r}" ${r === refeicaoPrevia ? 'selected' : ''}>${r}</option>
         `).join('');
 
-        container.innerHTML = refeicoesHtml;
+        body.innerHTML = `
+        <div class="setup-modal">
+            <div class="setup-topo">
+                <h2>Adicionar ao Planejamento</h2>
+                <p>Monte o plano alimentar para o dia selecionado</p>
+            </div>
+
+            <form id="form-planner" onsubmit="event.preventDefault(); VittaraPlanner.salvarAlimentosModal();">
+                <div class="setup-secao">
+                    <label class="setup-label" for="pl-refeicao">Selecione a Refeição</label>
+                    <select id="pl-refeicao" class="setup-input setup-select">
+                        ${opcoesRefeicao}
+                    </select>
+                </div>
+
+                <div class="setup-secao">
+                    <label class="setup-label">Alimentos</label>
+                    <div id="pl-lista-alimentos">
+                        <!-- O primeiro item já vem criado -->
+                        ${this._criarLinhaAlimentoHtml(0)}
+                    </div>
+
+                    <!-- Botão de adicionar mais alimentos abaixo -->
+                    <button type="button" class="btn-add-outro-item" onclick="VittaraPlanner.adicionarLinhaAlimento()">
+                        <i class="ti ti-plus"></i> Adicionar outro alimento a esta refeição
+                    </button>
+                </div>
+
+                <div class="setup-acoes">
+                    <button type="button" class="setup-btn-skip" onclick="VittaraPlanner.fecharModal()">Cancelar</button>
+                    <button type="submit" class="setup-btn-salvar">Salvar no plano ✓</button>
+                </div>
+            </form>
+        </div>`;
+
+        overlay.classList.add('active');
     },
+
+    fecharModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    },
+
+        _criarLinhaAlimentoHtml(idx) {
+        return `
+        <div class="planner-linha-form" id="pl-linha-${idx}">
+            <div class="planner-linha-campos">
+                <input type="text" class="setup-input pl-input-nome" placeholder="Nome do alimento (ex: Frango)" required>
+                
+                <div class="planner-medida-row">
+                    <!-- Seletor duplo em botões (Pílula) -->
+                    <div class="planner-tipo-pills">
+                        <button type="button" class="pill-tipo ativo" data-tipo="porcao" onclick="VittaraPlanner.alternarTipoMedida(this)">
+                            Porção (g)
+                        </button>
+                        <button type="button" class="pill-tipo" data-tipo="quantidade" onclick="VittaraPlanner.alternarTipoMedida(this)">
+                            Qtd (un)
+                        </button>
+                        <input type="hidden" class="pl-input-tipo" value="porcao">
+                    </div>
+
+                    <!-- Campo numérico com sufixo -->
+                    <input type="number" step="0.1" min="0.1" class="setup-input pl-input-val" placeholder="Ex: 150g" required>
+                </div>
+            </div>
+            ${idx > 0 ? `
+            <button type="button" class="btn-remover-linha" onclick="VittaraPlanner.removerLinhaAlimento(${idx})" title="Remover">
+                <i class="ti ti-trash"></i>
+            </button>` : ''}
+        </div>`;
+    },
+
+    alternarTipoMedida(btn) {
+        const container = btn.closest('.planner-tipo-pills');
+        container.querySelectorAll('.pill-tipo').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+
+        const tipo = btn.dataset.tipo;
+        container.querySelector('.pl-input-tipo').value = tipo;
+
+        const inputVal = btn.closest('.planner-medida-row').querySelector('.pl-input-val');
+        if (inputVal) {
+            inputVal.placeholder = tipo === 'porcao' ? 'Ex: 150g' : 'Ex: 2 un';
+        }
+    },
+
+    adicionarLinhaAlimento() {
+        const container = document.getElementById('pl-lista-alimentos');
+        if (!container) return;
+        const novoIdx = container.children.length;
+        const div = document.createElement('div');
+        div.innerHTML = this._criarLinhaAlimentoHtml(novoIdx);
+        container.appendChild(div.firstElementChild);
+    },
+
+    removerLinhaAlimento(idx) {
+        const linha = document.getElementById(`pl-linha-${idx}`);
+        if (linha) linha.remove();
+    },
+
+    atualizarPlaceholderQtd(select) {
+        const inputVal = select.nextElementSibling;
+        if (!inputVal) return;
+        inputVal.placeholder = select.value === 'porcao' ? 'Ex: 150g' : 'Ex: 2 un';
+    },
+
+    salvarAlimentosModal() {
+        const refeicao = document.getElementById('pl-refeicao').value;
+        const container = document.getElementById('pl-lista-alimentos');
+        const linhas = container.querySelectorAll('.planner-linha-form');
+
+        const novosItens = [];
+        linhas.forEach(linha => {
+            const nome = linha.querySelector('.pl-input-nome').value.trim();
+            const tipo = linha.querySelector('.pl-input-tipo').value;
+            const val  = linha.querySelector('.pl-input-val').value.trim();
+
+            if (nome && val) {
+                novosItens.push({
+                    nome,
+                    medida: tipo,
+                    valor: val
+                });
+            }
+        });
+
+        if (novosItens.length === 0) {
+            VittaraUI.toast('Preencha ao menos um alimento', 'error');
+            return;
+        }
+
+        // Garante estrutura no estado
+        if (!VittaraState.mealPlan[this.diaSelecionadoKey]) {
+            VittaraState.mealPlan[this.diaSelecionadoKey] = {};
+        }
+        if (!VittaraState.mealPlan[this.diaSelecionadoKey][refeicao]) {
+            VittaraState.mealPlan[this.diaSelecionadoKey][refeicao] = [];
+        }
+
+        // Adiciona todos os itens preenchidos
+        VittaraState.mealPlan[this.diaSelecionadoKey][refeicao].push(...novosItens);
+
+        this.render();
+        VittaraDB.saveMealPlan(this.diaSelecionadoKey, VittaraState.mealPlan[this.diaSelecionadoKey]);
+        this.fecharModal();
+        VittaraUI.toast('Plano atualizado com sucesso! 🥗', 'success');
+    },
+
+    removerAlimento(refeicao, idx) {
+        if (!VittaraState.mealPlan[this.diaSelecionadoKey]?.[refeicao]) return;
+        VittaraState.mealPlan[this.diaSelecionadoKey][refeicao].splice(idx, 1);
+        this.render();
+        VittaraDB.saveMealPlan(this.diaSelecionadoKey, VittaraState.mealPlan[this.diaSelecionadoKey]);
+        VittaraUI.toast('Item removido!', 'info');
+    }
 };
 
 // ─── Lista de Compras ──────────────────────────────────────────────────────────

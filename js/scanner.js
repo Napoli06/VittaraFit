@@ -16,22 +16,10 @@ window.VittaraScanner = {
     },
 
     //BLOCO 3: card da home
+        // BLOCO 3: card da home
     renderHomeCard() {
-        const el = document.getElementById('home-scanner'); //busca a div home scanner que tem no html, linha 34
-
-        if (!el) return; //se essa div nao existir na tela atual (tipo, se vc n ta na home), simplesmente nao acontece nada
-
-        el.innerHTML = `
-    <div class="scanner-shortcut" onclick="VittaraRouter.navigate('scanner')">
-        <i class ="ti ti-scan"></i>
-        <div class="scanner-shortcut-text">
-            <strong>Escanear produto</strong>
-            <span>Aponte a câmera pro código de barras</span>
-        </div>
-        <i class="ti ti-chevron-right"></i>
-    </div>
-`;
-        //injeta o html dentro da div, o onclick chama o mesmo vittararouter.navigate() que os botões da barra inferiror (linha 80 do index) ja usam
+        // Desativado: os 3 botões principais agora são gerenciados pela Home!
+        return;
     },
 
     //BLOCO 4: montando a tela cheia

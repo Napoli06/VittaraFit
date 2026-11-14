@@ -26,9 +26,9 @@
 <body>
 
     <div id="app">
-        <!-- Cabeçalho sempre visível no topo bbs -->
+        <!-- Cabeçalho sempre visível no topo -->
         <header class="app-header">
-            <img src="vittarafitlogo.png" alt="VittaraFit" class="app-logo">
+            <img src="logo-abrev.png" alt="VittaraFit" class="app-logo">
         </header>
 
         <!-- uma pagina por vez -->
@@ -44,6 +44,10 @@
             <section class="page" id="page-planner">
                 <div id="planner-semanal"></div>
                 <div id="planner-alimentar"></div>
+            </section>
+
+            <section class="page" id="page-goals">
+                <div id="goals-conteudo"></div>
             </section>
 
             <section class="page" id="page-scanner">
@@ -70,6 +74,10 @@
             <button class="nav-item" id="nav-planner" onclick="VittaraRouter.navigate('planner')">
                 <i class="ti ti-calendar-week"></i>
                 <span>Planner</span>
+            </button>
+            <button class="nav-item" id="nav-goals" onclick="VittaraRouter.navigate('goals')">
+                <i class="ti ti-target"></i>
+                <span>Objetivos</span>
             </button>
             <button class="nav-item" id="nav-scanner" onclick="VittaraRouter.navigate('scanner')">
                 <i class="ti ti-scan"></i>
@@ -111,6 +119,7 @@
     <script src="js/ui.js"></script>
     <script src="js/home.js"></script>
     <script src="js/planner.js"></script>
+    <script src="js/goals.js"></script>
     <script src="js/scanner.js"></script>
     <script src="js/list.js"></script>
     <script src="js/profile.js"></script>

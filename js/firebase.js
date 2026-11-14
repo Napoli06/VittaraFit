@@ -19,13 +19,11 @@ window.VittaraAuth = {
     currentUser: null, //null = nenhum usuário
 
     init() {
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async user => {
             if (user) {
-                //usuário logado
                 this.currentUser = user;
-                //carrega os dados do usuário no app
-                VittaraDB.loadUserProfile(user.uid);
-                //vai para a pág principal
+                // Espera carregar os dados antes de ir para a Home:
+                await VittaraDB.loadUserProfile(user.uid);
                 VittaraRouter.navigate('home');
             } else {
                 //usuário não logado
@@ -124,25 +122,32 @@ window.VittaraDB = {
 
     //busca os dados do perfil e joga no VittaraState
     async loadUserProfile(uid) {
-        //.get busca o doc de uma vez
         const doc = await db.collection('usuarios').doc(uid).get();
 
         if (doc.exists) {
-            //doc.data() retorna os dados do doc
-            //object.assign() copia tudo para o VittaraState.user
             Object.assign(VittaraState.user, doc.data());
-            VittaraProfile.refresh(); //atualiza tela de perfil
+            // Carrega o registro diário de hoje
+            await this.loadDailyLog(VittaraHome.hojeKey());
+
+            if (window.VittaraProfile) VittaraProfile.refresh();
+            if (window.VittaraHome) VittaraHome.refresh();
+            if (window.VittaraGoals) VittaraGoals.render();
         }
     },
 
     //salva alterações no perfil
-    async updateProfile(data) {
+        async updateProfile(data) {
         await db.collection('usuarios').doc(this.uid).update({
-            ...data, //copia todos os campos de "data"
+            ...data,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        //atualiza localmente tbm
+        // Atualiza o estado local
         Object.assign(VittaraState.user, data);
+
+        // Atualiza as telas na mesma hora:
+        if (window.VittaraProfile) VittaraProfile.refresh();
+        if (window.VittaraHome) VittaraHome.refresh();
+
         VittaraUI.toast('Perfil atualizado!', 'success');
     },
 
@@ -189,26 +194,37 @@ window.VittaraDB = {
             .collection('usuarios').doc(this.uid)
             .collection('logs').doc(dateKey)
             .set({
-                kcal: today.kcalConsumidas,
-                proteina: today.proteina.consumida,
-                carboidrato: today.carboidrato.consumido,
-                gordura: today.gordura.consumida,
-                agua: today.agua.consumida,
+                kcalConsumidas: today.kcalConsumidas || 0,
+                kcalGastas: today.kcalGastas || 0,
+                aguaMl: today.aguaMl || 0,
+                atividadeMin: today.atividadeMin || 0,
                 date: dateKey,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
     },
 
-    //busca os ultimos 30 dias de registros
+    async loadDailyLog(dateKey) {
+        const doc = await db
+            .collection('usuarios').doc(this.uid)
+            .collection('logs').doc(dateKey)
+            .get();
+        if (doc.exists) {
+            const d = doc.data();
+            VittaraState.today.kcalConsumidas = d.kcalConsumidas || 0;
+            VittaraState.today.kcalGastas = d.kcalGastas || 0;
+            VittaraState.today.aguaMl = d.aguaMl || 0;
+            VittaraState.today.atividadeMin = d.atividadeMin || 0;
+        }
+    },
+
     async loadLogs() {
         const snap = await db
             .collection('usuarios').doc(this.uid)
             .collection('logs')
-            .orderBy('date', 'desc') //mais recente primeiro
+            .orderBy('date', 'desc')
             .limit(30)
             .get();
 
-        //snap.docs é um array de docs
         return snap.docs.map(doc => doc.data());
     },
 

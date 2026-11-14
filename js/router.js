@@ -2,7 +2,7 @@ window.VittaraRouter = {
 
 
     //lista todas as pag do app
-    pages: ['home', 'planner', 'scanner', 'list', 'profile'],
+    pages: ['home', 'planner', 'goals', 'scanner', 'list', 'profile'],
 
     init() {
         //inicia na home
@@ -36,6 +36,7 @@ window.VittaraRouter = {
         //renderiza a pagina carregando as infos na tela
         if (pageId === 'home')    VittaraHome.refresh();
         if (pageId === 'planner') VittaraPlanner.refresh();
+        if (pageId === 'goals')   VittaraGoals.refresh();
         if (pageId === 'profile') VittaraProfile.refresh();
         if (pageId === 'list')    VittaraList.refresh();
         if (pageId === 'scanner') VittaraScanner.refresh();
