@@ -1,12 +1,19 @@
 //BLOCO 1: abertura do objeto e variáveis (sempre bom começar de algum lugar né?)
 window.VittaraScanner = {
 
-    codeReader: null, //guarda a instancia do leitor da lin ZXing
-    devices: [], //lista de câmeras do cell (preenchida após permissão)
-    deviceIndex: 0, //indice de qual câmera está ativa
-    currentDeviceId: null, //id da câmera em uso
-    lastLookup: null, //guarda o ultimo codigo de barras buscado, pra nao buscar denovo a toa
-    seen: new Set(), //guarda codigos de barras lidos a poucos segundos, pra n duplicar no histótico
+    codeReader: null,
+    controls: null,
+
+    devices: [],
+    deviceIndex: 0,
+    currentDeviceId: null,
+
+    lastLookup: null,
+    seen: new Set(),
+
+    // Controle do ciclo de vida da câmera
+    cameraSession: 0,
+    isScanning: false,
 
     //BLOCO 2: refresh
     refresh() {
@@ -138,6 +145,20 @@ window.VittaraScanner = {
             .addEventListener('click', () => this.switchCamera());
         //mesma lógica, mas pra trocar a câmera
 
+        // Desliga a câmera quando o usuário muda de aba
+        document.addEventListener('visibilitychange', () => {
+
+        if (document.hidden) {
+            this.stop();
+        }
+    
+        });
+
+        // Desliga a câmera quando a página é abandonada
+        window.addEventListener('pagehide', () => {
+            this.stop();
+        });
+
         const manualInput = document.getElementById('scanner-manual-input');
         if (manualInput) {
             // Garante apenas números em tempo real no mobile
@@ -193,117 +214,328 @@ window.VittaraScanner = {
 
     //BLOCO 6: ligar a Câmera (sem isso n funciona né?)
     async start() {
-        //async pq essa função usa await la dentro (função assíncrona que permite "pausar" a execução esperando
-        //uma promise (espaço reservado para um valor ainda n pronto, resultado de função assíncrona), sem travar a tela)
 
-        const startBtn = document.getElementById('scanner-start');
+    const startBtn = document.getElementById('scanner-start');
+
+    if (this.isScanning) return;
+
+    if (startBtn) {
         startBtn.disabled = true;
-        //desabilita o botão assim q clicado pra evitar duplo-clique
+    }
 
-        try {
-            if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-                throw new Error('SECURE_CONTEXT_REQUIRED');
-            }
+    // Identifica esta tentativa de inicialização
+    const session = ++this.cameraSession;
 
-            const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            //pede permissão ao usuário para usar a câmera, e espera ele permitir (await)
+    try {
 
-            tempStream.getTracks().forEach(t => t.stop());
-            //desliga o stream de teste imediatamente (serviu apenas para desbloquear a permissão);
-            //não será oq aparecerá na tela
-
-            const all = await navigator.mediaDevices.enumerateDevices();
-            //lista TODOS os dispositivos de mídia (cam, mic...)
-
-            this.devices = all.filter(d => d.kind === 'videoinput');
-            //filtra apenas as câmeras, tirando o mic/auto-falante
-
-            const backCam = this.devices.find(d => /back|traseira|rear|environment/i.test(d.label));
-            //procura entre as cameras alguma que tenha esse nome com essas palavras
-            //(varia conforme fabricante/idioma do cell) para identificar a traseira
-
-            this.deviceIndex = backCam ? this.devices.indexOf(backCam) : 0;
-            //se achou a cam usa o indice dela na lista, senao usa a primeira (0)
-
-            this.currentDeviceId = this.devices[this.deviceIndex]?.deviceId;
-            //guarda o id dessa cam. O "?." evita erro se por algum motivo n houver nenhuma cam na lista
-
-            await this.startScanning(this.currentDeviceId);
-            //agr sim, liga a cam escolhida de vdd (segue prox blocoo)
-        } catch (e) {
-            const messages = {
-                SECURE_CONTEXT_REQUIRED: 'Abra o app em https:// ou http://localhost para usar a câmera.',
-                NotAllowedError: 'A câmera foi bloqueada. Libere a permissão do site e do Windows e tente novamente.',
-                PermissionDeniedError: 'A câmera foi bloqueada. Libere a permissão do site e do Windows e tente novamente.',
-                NotFoundError: 'Nenhuma câmera foi encontrada neste computador.',
-                NotReadableError: 'A câmera está sendo usada por outro aplicativo.',
-                OverconstrainedError: 'A câmera não atende às configurações disponíveis.',
-            };
-
-            this.setStatus(messages[e.name] || `Erro ao acessar a câmera: ${e.message}`, 'error');
-            startBtn.disabled = false;
-            //se qlqr coisa no bloco try der erro (tipo o user negar a permissão),
-            //mostra a mensagem e reabilita o btn pra tentar dnv
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+            throw new Error('SECURE_CONTEXT_REQUIRED');
         }
-    },
+
+        // Solicita acesso à câmera traseira, preferencialmente
+        const tempStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        });
+
+        // Se o usuário saiu do scanner durante a solicitação,
+        // encerra imediatamente o stream recebido
+        if (session !== this.cameraSession) {
+            tempStream.getTracks().forEach(track => track.stop());
+            return;
+        }
+
+        // Libera o stream temporário
+        tempStream.getTracks().forEach(track => track.stop());
+
+        // Identifica as câmeras disponíveis
+        const all = await navigator.mediaDevices.enumerateDevices();
+
+        if (session !== this.cameraSession) return;
+
+        this.devices = all.filter(device => device.kind === 'videoinput');
+
+        if (!this.devices.length) {
+            throw new Error('NotFoundError');
+        }
+
+        // Prioriza a câmera traseira
+        const backCam = this.devices.find(device =>
+            /back|traseira|rear|environment/i.test(device.label)
+        );
+
+        this.deviceIndex = backCam
+            ? this.devices.indexOf(backCam)
+            : 0;
+
+        this.currentDeviceId = this.devices[this.deviceIndex].deviceId;
+
+        this.isScanning = true;
+
+        // Inicia a leitura
+        await this.startScanning(this.currentDeviceId, session);
+
+    } catch (e) {
+
+        if (session !== this.cameraSession) return;
+
+        const messages = {
+            SECURE_CONTEXT_REQUIRED:
+                'Abra o app em HTTPS ou localhost para utilizar a câmera.',
+
+            NotAllowedError:
+                'Acesso à câmera negado. Verifique as permissões.',
+
+            PermissionDeniedError:
+                'Acesso à câmera negado. Verifique as permissões.',
+
+            NotFoundError:
+                'Nenhuma câmera foi encontrada.',
+
+            NotReadableError:
+                'A câmera está sendo utilizada por outro aplicativo.',
+
+            OverconstrainedError:
+                'Não foi possível utilizar a câmera com as configurações solicitadas.'
+        };
+
+        this.isScanning = false;
+
+        this.setStatus(
+            messages[e.name] || `Erro ao acessar a câmera: ${e.message}`,
+            'error'
+        );
+
+        if (startBtn) {
+            startBtn.disabled = false;
+        }
+
+        console.error('Erro no scanner:', e);
+    }
+},
 
     //BLOCO 7: o loop de leitura the fato.
-    async startScanning(deviceId) {
-        if (!this.codeReader) {
-            const hints = new Map();
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-                ZXing.BarcodeFormat.EAN_13
-            ]);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    async startScanning(deviceId, session = this.cameraSession) {
 
-            this.codeReader = new ZXing.BrowserMultiFormatReader(hints, 100);
-        }
-        //cria o "motor" de leitura da Zxing só na primeira vez
-        //nas proximas vzs (tipo trocando de cam) reaproveita o mesmo
+    if (!this.codeReader) {
 
-        const video = document.getElementById('scanner-video');
+        const hints = new Map();
 
-        try {
-            this.setStatus('Abrindo Câmera...');
+        // Aceita especificamente códigos EAN-13
+        hints.set(
+            ZXing.DecodeHintType.POSSIBLE_FORMATS,
+            [ZXing.BarcodeFormat.EAN_13]
+        );
 
-            await this.codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-                //liga a camera "deviceId", joga o video dentro do elemento <video>
-                //e chama a função repetidamente, pra cada frame capturado
+        // Aumenta o esforço de decodificação
+        hints.set(
+            ZXing.DecodeHintType.TRY_HARDER,
+            true
+        );
+
+        // Cria o leitor com intervalo reduzido
+        this.codeReader = new ZXing.BrowserMultiFormatReader(
+            hints,
+            50
+        );
+    }
+
+    const video = document.getElementById('scanner-video');
+
+    if (!video) return;
+
+    try {
+
+        this.setStatus('Preparando câmera...');
+
+        const constraints = {
+            video: {
+                deviceId: deviceId
+                    ? { exact: deviceId }
+                    : undefined,
+
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+
+                frameRate: { ideal: 30 }
+            },
+
+            audio: false
+        };
+
+        // Inicia a leitura diretamente pelo fluxo de vídeo
+        const controls = await this.codeReader.decodeFromConstraints(
+            constraints,
+            video,
+            (result, error) => {
+
+                // Ignora resultados de sessões encerradas
+                if (session !== this.cameraSession) return;
+
+                if (!this.isScanning) return;
 
                 if (result) {
-                    //result so vem preenchido qnd um codigo foi encontrado NESSE frame
 
-                    this.setStatus(`Lido: ${result.getText()}`, 'success');
-                    this.onDetect(result.getText(), result.getBarcodeFormat());
-                    //result.getText() = numero do codigo;
-                    // result.getBarcodeFormat() = o tipo (EAN-13, QR Code, etc)
+                    const barcode = result.getText();
+
+                    // Confirma que a leitura é EAN-13 válido
+                    if (!/^\d{13}$/.test(barcode)) return;
+
+                    this.setStatus(
+                        `Código detectado: ${barcode}`,
+                        'success'
+                    );
+
+                    this.onDetect(
+                        barcode,
+                        result.getBarcodeFormat()
+                    );
                 }
+            }
+        );
+
+        // Se o usuário saiu enquanto o ZXing iniciava,
+        // encerra os controles recém-criados
+        if (session !== this.cameraSession) {
+            controls.stop();
+            return;
+        }
+
+        this.controls = controls;
+
+        this.setStatus(
+            'Câmera ativa! Aponte para o código de barras.',
+            'success'
+        );
+
+        const switchBtn = document.getElementById('scanner-switch');
+
+        if (switchBtn) {
+            switchBtn.disabled = this.devices.length < 2;
+        }
+
+    } catch (e) {
+
+        if (session !== this.cameraSession) return;
+
+        this.isScanning = false;
+
+        this.setStatus(
+            'Erro ao iniciar a leitura: ' + e.message,
+            'error'
+        );
+
+        const startBtn = document.getElementById('scanner-start');
+
+        if (startBtn) {
+            startBtn.disabled = false;
+        }
+
+        console.error('Erro ZXing:', e);
+    }
+},
+
+// Encerra os recursos da câmera atual
+stopCurrentCamera() {
+
+    // Encerra os controles fornecidos pelo ZXing
+    if (this.controls) {
+
+        try {
+            this.controls.stop();
+        } catch (e) {
+            console.warn('Erro ao encerrar controles:', e);
+        }
+
+        this.controls = null;
+    }
+
+    // Reseta o leitor ZXing
+    if (this.codeReader) {
+
+        try {
+            this.codeReader.reset();
+        } catch (e) {
+            console.warn('Erro ao resetar leitor:', e);
+        }
+    }
+
+    // Encerra todas as trilhas de vídeo
+    const video = document.getElementById('scanner-video');
+
+    if (video) {
+
+        if (video.srcObject) {
+
+            video.srcObject.getTracks().forEach(track => {
+                track.stop();
             });
 
-            this.setStatus('Câmera Ativa. Aponte para um código de barras.', 'success');
-            document.getElementById('scanner-switch').disabled = this.devices.length < 2;
-            //so habilita o botao de trocar a camera se for detectada 2 ou mais cameras
-        } catch (e) {
-            this.setStatus('Erro ao Acessar a Câmera: ' + e.message, 'error');
+            video.srcObject = null;
         }
-    },
+
+        video.pause();
+    }
+
+},
+
+// Encerra completamente o scanner
+stop() {
+
+    // Invalida qualquer inicialização pendente
+    this.cameraSession++;
+
+    this.isScanning = false;
+
+    // Desliga todos os recursos da câmera
+    this.stopCurrentCamera();
+
+    // Atualiza os controles da interface
+    const startBtn = document.getElementById('scanner-start');
+    const switchBtn = document.getElementById('scanner-switch');
+
+    if (startBtn) {
+        startBtn.disabled = false;
+    }
+
+    if (switchBtn) {
+        switchBtn.disabled = true;
+    }
+
+    // Atualiza o status
+    this.setStatus('Câmera desligada.', '');
+
+},
 
     //BLOCO 8: trocar de câmera (se vc quiser se ver enquanto escaneia o código de barras, pq não?)
     async switchCamera() {
-        if (this.devices.length < 2) return;
-        //se tem so 1 cam ent nem faz sentido trocar, so sai da função
 
-        this.codeReader.reset();
-        //desliga a cam atual antes de trocar
+    if (this.devices.length < 2) return;
 
-        this.deviceIndex = (this.deviceIndex + 1) % this.devices.length;
-        //avança pro prox indice da lista. O "% this.devices.length" faz
-        //o indice voltar ao começo, se ta no ultimo item volta pro primeiro
+    const session = this.cameraSession;
 
-        this.currentDeviceId = this.devices[this.deviceIndex].deviceId;
-        await this.startScanning(this.currentDeviceId);
-        //liga a prox cam da lista
-    },
+    // Encerra a câmera atual sem invalidar a sessão
+    this.stopCurrentCamera();
+
+    // Avança para a próxima câmera
+    this.deviceIndex = (
+        this.deviceIndex + 1
+    ) % this.devices.length;
+
+    this.currentDeviceId =
+        this.devices[this.deviceIndex].deviceId;
+
+    this.isScanning = true;
+
+    await this.startScanning(
+        this.currentDeviceId,
+        session
+    );
+},
 
     //BLOCO 9: atualizar mensagem de status
     setStatus(msg, kind) {

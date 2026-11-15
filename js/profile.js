@@ -11,32 +11,77 @@ window.VittaraProfile = {
         <div class="profile-wrap">
 
             <!-- Cabeçalho -->
-            <div class="profile-header">
-                <div class="profile-avatar" id="p-avatar" onclick="VittaraProfile.abrirMenuFoto()" title="Alterar foto">
-                    <i class="ti ti-user" id="p-avatar-icon"></i>
-                    <img id="p-avatar-img" src="" alt="Foto de perfil" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
-                </div>
-                <div class="profile-avatar-overlay"><i class="ti ti-camera"></i></div>
+        <div class="profile-header">
+
+        <!-- Foto de perfil clicável -->
+        <button
+        type="button"
+        class="profile-avatar"
+        id="p-avatar"
+        onclick="VittaraProfile.abrirMenuFoto()"
+        aria-label="Alterar foto de perfil"
+        title="Alterar foto">
+
+        <i class="ti ti-user" id="p-avatar-icon"></i>
+
+        <img
+            id="p-avatar-img"
+            src=""
+            alt="Foto de perfil"
+            style="
+                display:none;
+                width:100%;
+                height:100%;
+                object-fit:cover;
+                border-radius:50%;
+            "
+        >
+
+        <!-- Overlay agora fica DENTRO da foto -->
+        <span class="profile-avatar-overlay" aria-hidden="true">
+            <i class="ti ti-camera"></i>
+        </span>
+
+        </button>
+
+        <div class="profile-info">
+            <h2 id="p-nome">—</h2>
+            <span id="p-email" class="profile-email">—</span>
+        </div>
+
+        <!-- Menu de seleção de foto -->
+        <div
+            id="profile-foto-menu"
+            class="profile-foto-menu"
+            style="display:none;">
+
+            <button onclick="VittaraProfile.escolherFoto('camera')">
+                <i class="ti ti-camera"></i>
+                Tirar foto
+            </button>
+
+            <button onclick="VittaraProfile.escolherFoto('galeria')">
+                <i class="ti ti-photo"></i>
+                Escolher da galeria
+            </button>
+
+            <button
+                class="profile-foto-menu-cancelar"
+                onclick="VittaraProfile.fecharMenuFoto()"
+            >
+                Cancelar
+            </button>
+
             </div>
-            <!-- Menu de foto (oculto) -->
-            <div id="profile-foto-menu" class="profile-foto-menu" style="display:none;">
-                <button onclick="VittaraProfile.escolherFoto('camera')">
-                    <i class="ti ti-camera"></i> Tirar foto
-                </button>
-                <button onclick="VittaraProfile.escolherFoto('galeria')">
-                    <i class="ti ti-photo"></i> Escolher da galeria
-                </button>
-                <button class="profile-foto-menu-cancelar" onclick="VittaraProfile.fecharMenuFoto()">
-                    Cancelar
-                </button>
-            </div>
-            <input type="file" id="profile-foto-input" accept="image/*" style="display:none"
-                onchange="VittaraProfile.processarFoto(this)">
-                <div class="profile-info">
-                    <h2 id="p-nome">—</h2>
-                    <span id="p-email" class="profile-email">—</span>
-                </div>
-            </div>
+
+            <input
+                type="file"
+                id="profile-foto-input"
+                accept="image/*"
+                style="display:none;"
+                onchange="VittaraProfile.processarFoto(this)"
+            >
+        </div>
 
             <!-- Dados principais -->
             <div class="profile-card">
@@ -120,10 +165,10 @@ window.VittaraProfile = {
         this._t('p-restricoes', (user.restricoes?.length) ? user.restricoes.join(', ') : 'Nenhuma');
         this._t('p-favoritos', (user.alimentosFavoritos?.length) ? user.alimentosFavoritos.join(',') : '—');
         this._t('p-kcal-consumo', (user.metaKcalConsumo || 2000) + ' kcal');
-        this._t('p-kcal-gasto',   (user.metaKcalGasto || 500) + ' kcal');
-        this._t('p-atividade',    (user.metaAtividadeMin || 60) + ' min');
-        this._t('p-agua',         (user.metaAguaL || 2) + ' L/dia');
-        
+        this._t('p-kcal-gasto', (user.metaKcalGasto || 500) + ' kcal');
+        this._t('p-atividade', (user.metaAtividadeMin || 60) + ' min');
+        this._t('p-agua', (user.metaAguaL || 2) + ' L/dia');
+
         // Carrega foto de perfil se existir
         if (user.fotoPerfil) {
             this._mostrarFoto(user.fotoPerfil);
@@ -191,7 +236,7 @@ window.VittaraProfile = {
     },
 
     _mostrarFoto(url) {
-        const img  = document.getElementById('p-avatar-img');
+        const img = document.getElementById('p-avatar-img');
         const icon = document.getElementById('p-avatar-icon');
         if (!img) return;
         img.src = url;

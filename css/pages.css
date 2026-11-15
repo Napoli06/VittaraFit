@@ -36,18 +36,18 @@
 }
 
 .scanner-video-box {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 3/4;
-    background: var(--bg-base);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
+    background: #101010;
 }
 
 .scanner-video-box video {
+    display: block;
+
     width: 100%;
     height: 100%;
-    object-fit: cover;
+
+    object-fit: contain;
+
+    background: #101010;
 }
 
 .scanner-frame {
@@ -1764,4 +1764,163 @@
 
 .scanner-input-group button#scanner-manual-btn i {
     font-size: 1.25rem !important;
+}
+/* ========================================
+   FOTO DE PERFIL - CORREÇÃO MOBILE
+======================================== */
+
+/* Cabeçalho */
+.profile-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Área inteira da foto */
+.profile-avatar {
+    position: relative;
+
+    width: 76px;
+    height: 76px;
+
+    min-width: 76px;
+    min-height: 76px;
+
+    padding: 0;
+    margin: 0;
+
+    border: none;
+    border-radius: 50%;
+
+    overflow: hidden;
+
+    display: grid;
+    place-items: center;
+
+    background: var(--c-green-pastel);
+    color: var(--c-azure-dark);
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+
+    flex-shrink: 0;
+}
+
+/* Imagem */
+.profile-avatar img {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+/* Ícone padrão */
+.profile-avatar > i {
+    font-size: 2rem;
+    pointer-events: none;
+}
+
+/* Camada da câmera */
+.profile-avatar-overlay {
+    position: absolute;
+    inset: 0;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    background: rgba(31, 54, 61, 0.45);
+    color: white;
+
+    font-size: 1.4rem;
+
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    /* Fundamental: não bloquear o toque */
+    pointer-events: none;
+}
+
+/* Efeito ao passar o mouse */
+.profile-avatar:hover .profile-avatar-overlay {
+    opacity: 1;
+}
+
+/* Feedback visual ao tocar */
+.profile-avatar:active {
+    transform: scale(0.96);
+}
+
+/* Menu de fotos */
+.profile-foto-menu {
+    z-index: 100;
+}
+
+/* ==========================================
+   CORREÇÃO DEFINITIVA DA MOLDURA DO SCANNER
+========================================== */
+
+#page-scanner .scanner-video-box {
+    position: relative !important;
+
+    overflow: hidden !important;
+
+    isolation: isolate;
+
+    width: 100%;
+
+    border-radius: var(--radius-md);
+
+    background: #071318;
+}
+
+/* Vídeo da câmera */
+#page-scanner .scanner-video-box video {
+    position: absolute;
+
+    inset: 0;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+
+    z-index: 0;
+}
+
+/* Moldura de leitura */
+#page-scanner .scanner-frame {
+    position: absolute;
+
+    inset: 20% 12%;
+
+    z-index: 2;
+
+    border: 2px solid var(--c-green-muted);
+
+    border-radius: var(--radius-md);
+
+    /* Escurece somente a região externa à moldura */
+    box-shadow: 0 0 0 9999px rgba(2, 10, 13, 0.46);
+
+    pointer-events: none;
+}
+
+/* Ícone de enquadramento */
+#page-scanner .scanner-viewfinder {
+    z-index: 3;
+    pointer-events: none;
 }

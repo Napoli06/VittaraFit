@@ -10,6 +10,12 @@ window.VittaraRouter = {
     },
 
     navigate(pageId) {
+
+        // Se o usuário sair do scanner, desliga a câmera
+        if (pageId !== 'scanner') {
+            VittaraScanner.stop();
+        }
+        
         //esconde as paginas
         document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); });
 
