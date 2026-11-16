@@ -556,6 +556,85 @@ window.VittaraScanner = {
         this.lookupProduct(text);
     },
 
+        // Traduz as tags de alérgenos do Open Food Facts (inglês/francês) para Português do Brasil
+    translateAllergens(tags) {
+        if (!Array.isArray(tags) || tags.length === 0) return '';
+
+        const dictionary = {
+            'milk': 'Leite',
+            'dairy': 'Laticínios',
+            'lactose': 'Lactose',
+            'gluten': 'Glúten',
+            'soybeans': 'Soja',
+            'soy': 'Soja',
+            'soya': 'Soja',
+            'eggs': 'Ovos',
+            'egg': 'Ovo',
+            'peanuts': 'Amendoim',
+            'peanut': 'Amendoim',
+            'nuts': 'Castanhas / Nozes',
+            'tree-nuts': 'Frutas oleaginosas (Castanhas/Nozes)',
+            'tree nuts': 'Frutas oleaginosas (Castanhas/Nozes)',
+            'hazelnuts': 'Avelãs',
+            'hazelnut': 'Avelã',
+            'almonds': 'Amêndoas',
+            'almond': 'Amêndoa',
+            'walnuts': 'Nozes',
+            'walnut': 'Noz',
+            'cashews': 'Castanha de caju',
+            'cashew-nuts': 'Castanha de caju',
+            'brazil-nuts': 'Castanha-do-pará',
+            'pistachio-nuts': 'Pistache',
+            'pistachios': 'Pistache',
+            'macadamia-nuts': 'Macadâmia',
+            'pecan-nuts': 'Noz-pecã',
+            'pecans': 'Noz-pecã',
+            'wheat': 'Trigo',
+            'oats': 'Aveia',
+            'oat': 'Aveia',
+            'barley': 'Cevada',
+            'rye': 'Centeio',
+            'fish': 'Peixe',
+            'crustaceans': 'Crustáceos',
+            'shrimp': 'Camarão',
+            'molluscs': 'Moluscos',
+            'mollusks': 'Moluscos',
+            'sesame-seeds': 'Gergelim',
+            'sesame seeds': 'Gergelim',
+            'sesame': 'Gergelim',
+            'celery': 'Aipo (Salsão)',
+            'mustard': 'Mostarda',
+            'lupin': 'Tremoço',
+            'sulphur-dioxide-and-sulphites': 'Sulfitos e Dióxido de enxofre',
+            'sulphur dioxide and sulphites': 'Sulfitos e Dióxido de enxofre',
+            'sulfites': 'Sulfitos',
+            'sulphites': 'Sulfitos',
+            'corn': 'Milho',
+            'maize': 'Milho',
+            'cocoa': 'Cacau',
+            'coconut': 'Coco',
+            'yeast': 'Levedura / Fermento',
+            'pork': 'Carne suína',
+            'beef': 'Carne bovina',
+            'chicken': 'Frango'
+        };
+
+        const translated = tags.map(tag => {
+            // Remove prefixos de idioma como "en:", "pt:", "fr:", "es:"
+            const clean = String(tag).toLowerCase().replace(/^[a-z]{2}:/, '').trim();
+            if (dictionary[clean]) return dictionary[clean];
+
+            const withSpaces = clean.replace(/-/g, ' ');
+            if (dictionary[withSpaces]) return dictionary[withSpaces];
+
+            // Caso já venha em português ou seja outro termo, formata com inicial maiúscula
+            return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+        }).filter(Boolean);
+
+        // Remove duplicados (ex: "soy" e "soybeans" viram apenas um "Soja")
+        return [...new Set(translated)].join(', ');
+    },
+
     async lookupProduct(barcode) {
         if (this.lastLookup === barcode) return;
         this.lastLookup = barcode;
@@ -588,13 +667,23 @@ window.VittaraScanner = {
                 marca: p.brands || '',
                 imagem: p.image_front_small_url || p.image_url || '',
                 ingredientes: p.ingredients_text_pt || p.ingredients_text || 'Ingredientes não informados nesta base.',
-                alergenos: (p.allergens_tags || []).map(a => a.replace('en:', '').replace(/-/g, ' ')).join(', '),
+                alergenos: this.translateAllergens(p.allergens_tags || []),
                 nutriscore: (p.nutriscore_grade || '').toUpperCase(),
                 nova: p.nova_group || null,
             };
 
-            this.setStatus(`Produto encontrado: ${produto.nome}`, 'success');
+            // Exibe o resultado na tela
             this.renderProduct(produto);
+
+            // Desliga a câmera imediatamente após achar e mostrar o produto,
+            // mantendo o botão "Iniciar câmera" habilitado para uso manual
+            this.stop(true);
+            const startBtn = document.getElementById('scanner-start');
+            if (startBtn) startBtn.disabled = false;
+            const switchBtn = document.getElementById('scanner-switch');
+            if (switchBtn) switchBtn.disabled = true;
+
+            this.setStatus(`Produto encontrado: ${produto.nome}`, 'success');
 
             if (window.VittaraAuth?.currentUser) {
                 VittaraDB.saveScan(produto).then(() => VittaraDB.loadScanHistory());
