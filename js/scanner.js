@@ -1,41 +1,33 @@
-//BLOCO 1: abertura do objeto e variáveis (sempre bom começar de algum lugar né?)
 window.VittaraScanner = {
 
-    codeReader: null, //guarda a instancia do leitor da lin ZXing
-    devices: [], //lista de câmeras do cell (preenchida após permissão)
-    deviceIndex: 0, //indice de qual câmera está ativa
-    currentDeviceId: null, //id da câmera em uso
-    lastLookup: null, //guarda o ultimo codigo de barras buscado, pra nao buscar denovo a toa
-    seen: new Set(), //guarda codigos de barras lidos a poucos segundos, pra n duplicar no histótico
+    zxingReader: null,
+    barcodeDetector: null,
+    scanCanvas: null,
+    scanCtx: null,
+    devices: [],
+    deviceIndex: 0,
+    currentDeviceId: null,
+    lastLookup: null,
+    seen: new Set(),
+    activeStream: null,
+    scanLoopActive: false,
+    scanTimer: null,
 
-    //BLOCO 2: refresh
     refresh() {
-        this.renderHomeCard(); //desenha o card de atalho na home
-        this.renderPage(); //desenha a tela cheia do scanner (só na primeira vez)
-        this.renderHistory(); //atualiza a lista do histórico na tela
+        this.renderHomeCard();
+        this.renderPage();
+        this.renderHistory();
     },
 
-    //BLOCO 3: card da home
-        // BLOCO 3: card da home
     renderHomeCard() {
-        // Desativado: os 3 botões principais agora são gerenciados pela Home!
-        return;
+        return; // Gerenciado pela Home
     },
 
-    //BLOCO 4: montando a tela cheia
     renderPage() {
         const page = document.getElementById('page-scanner');
-        //busca a section do id page scanner do index, linha 44
-
         if (!page) return;
-
         if (page.dataset.mounted === 'true') return;
-        //TRAVA IMPORTANTE: se essa pagina ja foi desenhada antes, ela para aqui
-        //sem isso, toda vez q voltasse pro scanner, o video seria recriado do zero
-        //e a camera (ja ligada nele) perderia conexão
-
         page.dataset.mounted = 'true';
-        //marca "ja montei" para proxima chamada de renderPage ser barrada acima
 
         page.innerHTML = `
             <div class="scanner-wrap">
@@ -53,14 +45,14 @@ window.VittaraScanner = {
                             <div>
                                 <span class="scanner-step">01 · LEITOR</span>
                                 <h2>Aponte para o código de barras</h2>
-                                <p>Mantenha o produto estável e dentro da moldura.</p>
+                                <p>Mantenha o código dentro da moldura central.</p>
                             </div>
                             <i class="ti ti-camera scanner-heading-icon"></i>
                         </div>
 
                         <div class="scanner-video-box">
                             <video id="scanner-video" muted playsinline autoplay></video>
-                            <div class="scanner-frame"></div>
+                            <div class="scanner-frame" id="scanner-frame-box"></div>
                             <span class="scanner-viewfinder"><i class="ti ti-scan"></i></span>
                         </div>
 
@@ -129,18 +121,13 @@ window.VittaraScanner = {
         `;
 
         document.getElementById('scanner-start')
-            .addEventListener('click', () => this.start());
-        //liga o clique do botão de iniciar a camera usando o metodo start
-        //usar o "=>" ao invés de só "this.start" preserva a ideia de "isso" como o VittaraScanner
-        //no momento que clicar
+            ?.addEventListener('click', () => this.start());
 
         document.getElementById('scanner-switch')
-            .addEventListener('click', () => this.switchCamera());
-        //mesma lógica, mas pra trocar a câmera
+            ?.addEventListener('click', () => this.switchCamera());
 
         const manualInput = document.getElementById('scanner-manual-input');
         if (manualInput) {
-            // Garante apenas números em tempo real no mobile
             manualInput.addEventListener('input', (e) => {
                 e.target.value = e.target.value.replace(/\D/g, '').slice(0, 13);
             });
@@ -154,14 +141,12 @@ window.VittaraScanner = {
         }
     },
 
-        // BLOCO 5: envio manual do código de barras
     handleManualSubmit() {
         const input = document.getElementById('scanner-manual-input');
         const errorEl = document.getElementById('scanner-manual-error');
         if (!input) return;
 
         const barcode = input.value.trim();
-
         if (errorEl) errorEl.textContent = '';
 
         if (!barcode) {
@@ -171,7 +156,6 @@ window.VittaraScanner = {
             return;
         }
 
-        // Validação estrita do padrão EAN-13 (exatamente 13 dígitos numéricos)
         if (barcode.length !== 13) {
             const msg = `O código EAN-13 deve ter 13 dígitos (você digitou ${barcode.length}).`;
             if (errorEl) errorEl.textContent = msg;
@@ -179,239 +163,423 @@ window.VittaraScanner = {
             return;
         }
 
-        // Fecha o teclado virtual no celular
         input.blur();
-
         this.setStatus(`Buscando código: ${barcode}...`, 'success');
-
-        // Permite reconsultar mesmo que seja o mesmo código buscado antes
         this.lastLookup = null;
-
-        // Dispara exatamente a mesma busca da câmera (Open Food Facts + Firestore)
         this.lookupProduct(barcode);
     },
 
-    //BLOCO 6: ligar a Câmera (sem isso n funciona né?)
-    async start() {
-        //async pq essa função usa await la dentro (função assíncrona que permite "pausar" a execução esperando
-        //uma promise (espaço reservado para um valor ainda n pronto, resultado de função assíncrona), sem travar a tela)
+    // Prepara os motores de leitura (ZXing MultiFormat + Canvas com filtro de contraste)
+    async initEngines() {
+        if (!this.zxingReader && window.ZXing) {
+            const hints = new Map();
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+                ZXing.BarcodeFormat.EAN_13,
+                ZXing.BarcodeFormat.EAN_8,
+                ZXing.BarcodeFormat.UPC_A,
+                ZXing.BarcodeFormat.UPC_E,
+                ZXing.BarcodeFormat.CODE_128,
+                ZXing.BarcodeFormat.CODE_39,
+                ZXing.BarcodeFormat.ITF
+            ]);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
+            this.zxingReader = new ZXing.MultiFormatReader();
+            this.zxingReader.setHints(hints);
+        }
+
+        if (!this.scanCanvas) {
+            this.scanCanvas = document.createElement('canvas');
+            this.scanCtx = this.scanCanvas.getContext('2d', { willReadFrequently: true });
+        }
+
+        if (!this.barcodeDetector && 'BarcodeDetector' in window) {
+            try {
+                const formats = await BarcodeDetector.getSupportedFormats();
+                const desired = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'].filter(f => formats.includes(f));
+                if (desired.length > 0) {
+                    this.barcodeDetector = new BarcodeDetector({ formats: desired });
+                }
+            } catch (e) {}
+        }
+    },
+
+    // Filtra as câmeras para ter APENAS 1 Traseira Principal (alta resolução) e 1 Frontal
+    async setupCameraList() {
+        const all = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = all.filter(d => d.kind === 'videoinput');
+
+        const backCams = videoInputs.filter(d => /back|traseira|rear|environment/i.test(d.label));
+        const frontCams = videoInputs.filter(d => /front|frontal|user|selfie|facetime/i.test(d.label));
+
+        if (backCams.length > 0 || frontCams.length > 0) {
+            const filtered = [];
+
+            if (backCams.length > 0) {
+                // Em celulares com 3 câmeras, a última câmera traseira listada (ou camera2 0)
+                // é o sensor principal HD com foco automático, enquanto a primeira é a grande-angular
+                const mainBack = backCams[backCams.length - 1];
+                filtered.push({
+                    deviceId: mainBack.deviceId,
+                    facingMode: 'environment',
+                    label: 'Traseira'
+                });
+            }
+
+            if (frontCams.length > 0) {
+                const mainFront = frontCams[frontCams.length - 1];
+                filtered.push({
+                    deviceId: mainFront.deviceId,
+                    facingMode: 'user',
+                    label: 'Frontal'
+                });
+            }
+
+            this.devices = filtered;
+        } else {
+            // Computador / Webcam
+            this.devices = videoInputs.map((d, i) => ({
+                deviceId: d.deviceId,
+                facingMode: undefined,
+                label: d.label || `Câmera ${i + 1}`
+            }));
+        }
+    },
+
+    async start() {
         const startBtn = document.getElementById('scanner-start');
-        startBtn.disabled = true;
-        //desabilita o botão assim q clicado pra evitar duplo-clique
+        if (startBtn) startBtn.disabled = true;
 
         try {
             if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
                 throw new Error('SECURE_CONTEXT_REQUIRED');
             }
 
-            const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            //pede permissão ao usuário para usar a câmera, e espera ele permitir (await)
+            await this.initEngines();
 
+            // Destrava os rótulos das câmeras pedindo permissão inicial
+            const tempStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false
+            });
             tempStream.getTracks().forEach(t => t.stop());
-            //desliga o stream de teste imediatamente (serviu apenas para desbloquear a permissão);
-            //não será oq aparecerá na tela
 
-            const all = await navigator.mediaDevices.enumerateDevices();
-            //lista TODOS os dispositivos de mídia (cam, mic...)
+            await this.setupCameraList();
 
-            this.devices = all.filter(d => d.kind === 'videoinput');
-            //filtra apenas as câmeras, tirando o mic/auto-falante
+            this.deviceIndex = 0;
+            this.currentDeviceId = this.devices[0]?.deviceId;
 
-            const backCam = this.devices.find(d => /back|traseira|rear|environment/i.test(d.label));
-            //procura entre as cameras alguma que tenha esse nome com essas palavras
-            //(varia conforme fabricante/idioma do cell) para identificar a traseira
-
-            this.deviceIndex = backCam ? this.devices.indexOf(backCam) : 0;
-            //se achou a cam usa o indice dela na lista, senao usa a primeira (0)
-
-            this.currentDeviceId = this.devices[this.deviceIndex]?.deviceId;
-            //guarda o id dessa cam. O "?." evita erro se por algum motivo n houver nenhuma cam na lista
-
-            await this.startScanning(this.currentDeviceId);
-            //agr sim, liga a cam escolhida de vdd (segue prox blocoo)
+            await this.startScanning(this.currentDeviceId, this.devices[0]?.facingMode);
         } catch (e) {
             const messages = {
                 SECURE_CONTEXT_REQUIRED: 'Abra o app em https:// ou http://localhost para usar a câmera.',
-                NotAllowedError: 'A câmera foi bloqueada. Libere a permissão do site e do Windows e tente novamente.',
-                PermissionDeniedError: 'A câmera foi bloqueada. Libere a permissão do site e do Windows e tente novamente.',
-                NotFoundError: 'Nenhuma câmera foi encontrada neste computador.',
+                NotAllowedError: 'A permissão da câmera foi negada. Libere o acesso no navegador.',
+                PermissionDeniedError: 'A permissão da câmera foi negada.',
+                NotFoundError: 'Nenhuma câmera encontrada neste dispositivo.',
                 NotReadableError: 'A câmera está sendo usada por outro aplicativo.',
-                OverconstrainedError: 'A câmera não atende às configurações disponíveis.',
             };
 
-            this.setStatus(messages[e.name] || `Erro ao acessar a câmera: ${e.message}`, 'error');
-            startBtn.disabled = false;
-            //se qlqr coisa no bloco try der erro (tipo o user negar a permissão),
-            //mostra a mensagem e reabilita o btn pra tentar dnv
+            this.setStatus(messages[e.name] || `Erro ao acessar câmera: ${e.message}`, 'error');
+            if (startBtn) startBtn.disabled = false;
         }
     },
 
-    //BLOCO 7: o loop de leitura the fato.
-    async startScanning(deviceId) {
-        if (!this.codeReader) {
-            const hints = new Map();
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-                ZXing.BarcodeFormat.EAN_13
-            ]);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-            this.codeReader = new ZXing.BrowserMultiFormatReader(hints, 100);
-        }
-        //cria o "motor" de leitura da Zxing só na primeira vez
-        //nas proximas vzs (tipo trocando de cam) reaproveita o mesmo
+    async startScanning(deviceId, facingMode) {
+        this.stop(true); // Limpa stream anterior mantendo estado de abertura
 
         const video = document.getElementById('scanner-video');
+        if (!video) return;
+
+        this.setStatus('Abrindo câmera em alta definição...');
+
+        const constraints = {
+            audio: false,
+            video: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                facingMode: !deviceId && facingMode ? { ideal: facingMode } : undefined,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        };
 
         try {
-            this.setStatus('Abrindo Câmera...');
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            this.activeStream = stream;
+            video.srcObject = stream;
+            await video.play();
 
-            await this.codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-                //liga a camera "deviceId", joga o video dentro do elemento <video>
-                //e chama a função repetidamente, pra cada frame capturado
-
-                if (result) {
-                    //result so vem preenchido qnd um codigo foi encontrado NESSE frame
-
-                    this.setStatus(`Lido: ${result.getText()}`, 'success');
-                    this.onDetect(result.getText(), result.getBarcodeFormat());
-                    //result.getText() = numero do codigo;
-                    // result.getBarcodeFormat() = o tipo (EAN-13, QR Code, etc)
+            // Ativa autofoco contínuo no sensor da câmera
+            const track = stream.getVideoTracks()[0];
+            if (track && track.getCapabilities) {
+                const caps = track.getCapabilities();
+                const adv = {};
+                if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                    adv.focusMode = 'continuous';
                 }
-            });
+                if (Object.keys(adv).length > 0) {
+                    track.applyConstraints({ advanced: [adv] }).catch(() => {});
+                }
+            }
 
-            this.setStatus('Câmera Ativa. Aponte para um código de barras.', 'success');
-            document.getElementById('scanner-switch').disabled = this.devices.length < 2;
-            //so habilita o botao de trocar a camera se for detectada 2 ou mais cameras
+            this.scanLoopActive = true;
+            this.setStatus('Câmera ativa! Posicione o código de barras na mira.', 'success');
+
+            const startBtn = document.getElementById('scanner-start');
+            if (startBtn) startBtn.disabled = true;
+
+            const switchBtn = document.getElementById('scanner-switch');
+            if (switchBtn) switchBtn.disabled = this.devices.length < 2;
+
+            this.scheduleNextScan(video);
         } catch (e) {
-            this.setStatus('Erro ao Acessar a Câmera: ' + e.message, 'error');
+            this.setStatus('Erro ao iniciar vídeo: ' + e.message, 'error');
+            const startBtn = document.getElementById('scanner-start');
+            if (startBtn) startBtn.disabled = false;
         }
     },
 
-    //BLOCO 8: trocar de câmera (se vc quiser se ver enquanto escaneia o código de barras, pq não?)
-    async switchCamera() {
-        if (this.devices.length < 2) return;
-        //se tem so 1 cam ent nem faz sentido trocar, so sai da função
-
-        this.codeReader.reset();
-        //desliga a cam atual antes de trocar
-
-        this.deviceIndex = (this.deviceIndex + 1) % this.devices.length;
-        //avança pro prox indice da lista. O "% this.devices.length" faz
-        //o indice voltar ao começo, se ta no ultimo item volta pro primeiro
-
-        this.currentDeviceId = this.devices[this.deviceIndex].deviceId;
-        await this.startScanning(this.currentDeviceId);
-        //liga a prox cam da lista
+    scheduleNextScan(video) {
+        if (!this.scanLoopActive) return;
+        this.scanTimer = setTimeout(() => this.scanFrame(video), 80);
     },
 
-    //BLOCO 9: atualizar mensagem de status
+    // Analisa cada frame com 4 estratégias simultâneas (Nativo + Quadro Inteiro + Zoom Central + Desespelhado)
+    async scanFrame(video) {
+        if (!this.scanLoopActive || !video || video.readyState < 2 || !video.videoWidth) {
+            this.scheduleNextScan(video);
+            return;
+        }
+
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+
+        // 1. Tenta BarcodeDetector nativo (se suportado pelo hardware)
+        if (this.barcodeDetector) {
+            try {
+                const barcodes = await this.barcodeDetector.detect(video);
+                if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                    this.onDetect(barcodes[0].rawValue);
+                    this.scheduleNextScan(video);
+                    return;
+                }
+            } catch (e) {}
+        }
+
+        // 2. ZXing - Quadro completo redimensionado
+        const scale = Math.min(1, 800 / vw);
+        const cw = Math.floor(vw * scale);
+        const ch = Math.floor(vh * scale);
+
+        this.scanCanvas.width = cw;
+        this.scanCanvas.height = ch;
+        this.scanCtx.filter = 'none';
+        this.scanCtx.drawImage(video, 0, 0, cw, ch);
+
+        let code = this.tryDecodeCanvas(this.scanCanvas);
+        if (code) {
+            this.onDetect(code);
+            this.scheduleNextScan(video);
+            return;
+        }
+
+        // 3. ZXing - Recorte Central (Zoom na mira) com reforço de nitidez e contraste
+        const cropX = Math.floor(vw * 0.12);
+        const cropY = Math.floor(vh * 0.22);
+        const cropW = Math.floor(vw * 0.76);
+        const cropH = Math.floor(vh * 0.56);
+
+        this.scanCanvas.width = 640;
+        this.scanCanvas.height = 360;
+        this.scanCtx.filter = 'contrast(1.45) grayscale(1)';
+        this.scanCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 640, 360);
+
+        code = this.tryDecodeCanvas(this.scanCanvas);
+        if (code) {
+            this.onDetect(code);
+            this.scheduleNextScan(video);
+            return;
+        }
+
+        // 4. ZXing - Recorte Desespelhado (essencial para Webcams de PC e Câmeras Frontais)
+        this.scanCtx.save();
+        this.scanCtx.scale(-1, 1);
+        this.scanCtx.drawImage(video, cropX, cropY, cropW, cropH, -640, 0, 640, 360);
+        this.scanCtx.restore();
+
+        code = this.tryDecodeCanvas(this.scanCanvas);
+        if (code) {
+            this.onDetect(code);
+            this.scheduleNextScan(video);
+            return;
+        }
+
+        this.scheduleNextScan(video);
+    },
+
+    // Decodifica o canvas testando dois algoritmos de binarização
+    tryDecodeCanvas(canvas) {
+        if (!this.zxingReader || !window.ZXing) return null;
+
+        try {
+            const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+
+            // Algoritmo 1: GlobalHistogram (ideal para webcam e foco suave)
+            try {
+                const bitmap1 = new ZXing.BinaryBitmap(new ZXing.GlobalHistogramBinarizer(luminance));
+                const res1 = this.zxingReader.decodeWithState(bitmap1);
+                if (res1 && res1.getText()) return res1.getText();
+            } catch (e1) {}
+
+            // Algoritmo 2: HybridBinarizer (ideal para sombras ou reflexo na embalagem)
+            try {
+                const bitmap2 = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
+                const res2 = this.zxingReader.decodeWithState(bitmap2);
+                if (res2 && res2.getText()) return res2.getText();
+            } catch (e2) {}
+        } catch (e) {}
+
+        return null;
+    },
+
+    // Desliga completamente a câmera e o loop de captura
+    stop(silent = false) {
+        this.scanLoopActive = false;
+
+        if (this.scanTimer) {
+            clearTimeout(this.scanTimer);
+            this.scanTimer = null;
+        }
+
+        if (this.zxingReader) {
+            try { this.zxingReader.reset(); } catch (e) {}
+        }
+
+        if (this.activeStream) {
+            this.activeStream.getTracks().forEach(track => {
+                track.stop();
+            });
+            this.activeStream = null;
+        }
+
+        const video = document.getElementById('scanner-video');
+        if (video) {
+            video.srcObject = null;
+        }
+
+        if (!silent) {
+            const startBtn = document.getElementById('scanner-start');
+            if (startBtn) startBtn.disabled = false;
+            const switchBtn = document.getElementById('scanner-switch');
+            if (switchBtn) switchBtn.disabled = true;
+            this.setStatus('Câmera desligada.');
+        }
+    },
+
+    // Alterna em 1 clique direto entre Traseira e Frontal
+    async switchCamera() {
+        if (this.devices.length < 2) return;
+        this.deviceIndex = (this.deviceIndex + 1) % this.devices.length;
+        const target = this.devices[this.deviceIndex];
+        this.currentDeviceId = target.deviceId;
+        await this.startScanning(target.deviceId, target.facingMode);
+    },
+
     setStatus(msg, kind) {
         const el = document.getElementById('scanner-status');
         if (!el) return;
         el.textContent = msg;
-        //muda o texto exibido
-
         el.className = 'scanner-status' + (kind ? ' ' + kind : '');
-        //troca a classe do css, sempre tem scanner-status, e se kind foi passado,
-        //como success ou error, adiciona tbm essa segunda classe,
-        //que muda a cor do texto (definido em pages.css)
     },
 
-    //BLOCO 10: o que o sistema faz quando detecta um código
-    onDetect(text, format) {
-        const key = format + ':' + text;
-        //combina o tipo com um texto numa unica chave de identificação
-        //ex: QR_CODE:290384799
+    onDetect(rawText) {
+        const text = String(rawText || '').trim();
+        if (!text) return;
 
-        if (this.seen.has(key)) return;
-        //se a chave ja foi vista a pouco tempo, ignora - isso evita
-        //do mesmo codigo ser processado milhões de vezes por segundo
-        //(decodeFromVideoDevice) chama esse fluxo em cada frame de video
+        if (this.seen.has(text)) return;
+        this.seen.add(text);
+        setTimeout(() => this.seen.delete(text), 4000);
 
-        this.seen.add(key);
-        setTimeout(() => this.seen.delete(key), 8000);
-        //depois de 8 segundos, remove essa chave do "seen", permitindo que
-        //o MESMO código seja lido dnv mais tarde (ex: escaneou o mesmo produto 2x)
+        // Feedback visual na moldura do scanner
+        const frame = document.getElementById('scanner-frame-box');
+        if (frame) {
+            frame.style.borderColor = '#4ade80';
+            frame.style.boxShadow = '0 0 25px rgba(74, 222, 128, 0.7), 0 0 0 999px rgba(2, 10, 13, 0.46)';
+            setTimeout(() => {
+                frame.style.borderColor = '';
+                frame.style.boxShadow = '';
+            }, 600);
+        }
 
+        // Feedback sonoro (bip de leitor) e vibração
+        try {
+            navigator.vibrate?.([70]);
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(1150, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.09);
+        } catch (e) {}
+
+        this.setStatus(`Código lido: ${text}! Buscando informações...`, 'success');
+        this.lastLookup = null;
         this.lookupProduct(text);
-        //finalmente, dispara a busca pelo produto - próssimu bloko :)
     },
 
-    //BLOCO 11: buscar o produto na Open Food Facts
     async lookupProduct(barcode) {
         if (this.lastLookup === barcode) return;
-        //se o ultimo codigo buscado foi esse msm, n repete a chamada a toa
-
         this.lastLookup = barcode;
 
         const box = document.getElementById('scanner-product');
         const emptyState = document.getElementById('scanner-product-empty');
         if (emptyState) emptyState.hidden = true;
-        box.classList.add('visible');
-        //adiciona a classe q faz o card aparecer (css: .scanner-product.visible)
-
-        box.innerHTML = `<p class="scanner-msg">Buscando Informações do Produto ${barcode}...</p>`;
-        //mostra uma mensagem de "carregando" antes da resposta da API chegar
+        if (box) {
+            box.classList.add('visible');
+            box.innerHTML = `<p class="scanner-msg">Buscando produto do código <strong>${barcode}</strong>...</p>`;
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
 
         try {
-            const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
-            //faz a requisição http para API publica da open food facts, usando o codigo de barras
-            //lido diretamente na URL
-
+            const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
             const data = await res.json();
-            //espera a resposta e converte o corpo(json) num objeto(JS) utilizável
 
             if (data.status !== 1 || !data.product) {
-                box.innerHTML = `<p class="scanner-msg">Produto Não Encontrado Para o Código ${barcode}.</p>`;
+                const notFoundMsg = `Código ${barcode} lido com sucesso, mas este produto ainda não consta na base Open Food Facts.`;
+                if (box) box.innerHTML = `<p class="scanner-msg">${notFoundMsg}</p>`;
+                this.setStatus(notFoundMsg, 'error');
+                window.VittaraUI?.toast?.(`Código ${barcode} lido (produto não cadastrado na base)`, 'error');
                 return;
-                //a API retorna status: 1 quando acha; qlqr outra coisa = não achou
             }
 
             const p = data.product;
-
             const produto = {
                 barcode,
-
                 nome: p.product_name_pt || p.product_name || 'Nome não informado',
-                //tenta o nome em pt primeiro, se n tiver usa o genérico;
-                //se n tiver nenhum usa texto padrão
-
                 marca: p.brands || '',
                 imagem: p.image_front_small_url || p.image_url || '',
                 ingredientes: p.ingredients_text_pt || p.ingredients_text || 'Ingredientes não informados nesta base.',
-
                 alergenos: (p.allergens_tags || []).map(a => a.replace('en:', '').replace(/-/g, ' ')).join(', '),
-                //p.allergens_tags vem como ("en:milk"). O .map() limpa cada item (tira o prefixo "en:" e troca hífen por espaço),
-                //e o .join(', ') junta tudo numa string separada por virgulas
-
                 nutriscore: (p.nutriscore_grade || '').toUpperCase(),
                 nova: p.nova_group || null,
             };
-            //organiza tudo num objeto único "produto" - vamos usá-lo tanto pra mostrar na tela quanto pra salvar no Firestore
 
+            this.setStatus(`Produto encontrado: ${produto.nome}`, 'success');
             this.renderProduct(produto);
-            //desenha o card na tela (bloco 13, calma ai)
 
             if (window.VittaraAuth?.currentUser) {
                 VittaraDB.saveScan(produto).then(() => VittaraDB.loadScanHistory());
             }
-            //só salva no banco se o user ja estiver LOGADO
-            //vittaraAuth.currentUser é nulo quando ngm logou
-            //vittaraDB.saveScan() e loadScanHistory() já existiam prontas no firebase.js
-            //a gnt so chama eles aqui. loadScanHistory ja termina chamando VittaraScanner.renderHistory sozinha
-            //olhar o firebase.js, função loadScanHistory
 
-            window.VittaraUI?.toast?.(`Produto Encontrado: ${produto.nome}`, 'success');
-            //mostra uma notificação toast, SE o módulo VittaraUI (ui.js) já tiver
-            //uma função toast() implementada. Os dois "?." evitam erro caso não tenha ainda.
+            window.VittaraUI?.toast?.(`Produto encontrado: ${produto.nome}`, 'success');
         } catch (e) {
-            box.innerHTML = `<p class="scanner-msg">Erro ao Consultar o Produto: ${e.message}</p>`;
-            //se a internet cair ou a API falhar, mostra isso em vez de travar 
+            if (box) box.innerHTML = `<p class="scanner-msg">Erro ao consultar produto: ${e.message}</p>`;
+            this.setStatus(`Erro ao consultar código ${barcode}`, 'error');
         }
     },
 
-    //BLOCO 12: auxiliar da classificação NOVA (níveis 1, 2, 3 e 4)
     getNovaInfo(novaLevel) {
         if (!novaLevel) return null;
         const level = Number(novaLevel);
@@ -435,7 +603,6 @@ window.VittaraScanner = {
         };
     },
 
-    //BLOCO 13: Card do produto encontrado
     renderProduct(p) {
         const box = document.getElementById('scanner-product');
         if (!box) return;
@@ -445,7 +612,6 @@ window.VittaraScanner = {
             badges += `<span class="scanner-badge">Nutri-Score ${p.nutriscore}</span>`;
         }
 
-        // Adiciona o selo da classificação NOVA com descrição do nível
         const novaInfo = this.getNovaInfo(p.nova);
         if (novaInfo) {
             badges += `<span class="${novaInfo.badgeClass}">NOVA ${novaInfo.level} (${novaInfo.desc})</span>`;
@@ -461,7 +627,6 @@ window.VittaraScanner = {
             </div>
             ${badges ? `<div class="scanner-badges">${badges}</div>` : ''}
             
-            <!-- Botão dinâmico que abre a pesquisa no Google em nova aba -->
             ${novaInfo ? `
                 <div class="scanner-nova-action">
                     <a href="${novaInfo.searchUrl}" target="_blank" rel="noopener noreferrer" class="btn-nova-explain">
@@ -480,10 +645,8 @@ window.VittaraScanner = {
                 <p>${p.alergenos}</p>
             </div>` : ''}
         `;
-        //cada "${condição ? '...' : ''}" só mostra aquele pedaço de HTML se a informação existir
     },
 
-    //BLOCO 14: histórico de leituras
     renderHistory() {
         const list = document.getElementById('scanner-history-list');
         if (!list) return;
@@ -510,7 +673,6 @@ window.VittaraScanner = {
                 ? `<span class="${novaInfo.badgeClass}">NOVA ${novaInfo.level} (${novaInfo.desc})</span>`
                 : `<span class="scanner-badge muted">NOVA N/A</span>`;
 
-            // Botão no histórico com onclick="event.stopPropagation()" para não fechar a gaveta ao clicar
             const novaButton = novaInfo
                 ? `
                     <div class="scanner-nova-action">
@@ -531,7 +693,6 @@ window.VittaraScanner = {
                         </span>
                         <i class="ti ti-chevron-right scanner-history-arrow"></i>
                     </div>
-                    <!-- Área do efeito cascata com resumo e botão do Google -->
                     <div class="scanner-history-details">
                         <div class="scanner-history-badges">
                             ${nutriBadge}
@@ -544,9 +705,15 @@ window.VittaraScanner = {
         }).join('');
     },
 
-    //BLOCO 15: alternar abertura do efeito cascata
     toggleHistoryItem(el) {
         if (!el) return;
         el.classList.toggle('open');
     }
 };
+
+// Desliga a câmera se o usuário minimizar o navegador ou trocar de guia
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && window.VittaraScanner) {
+        window.VittaraScanner.stop();
+    }
+});

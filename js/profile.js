@@ -10,13 +10,17 @@ window.VittaraProfile = {
         p.innerHTML = `
         <div class="profile-wrap">
 
-            <!-- Cabeçalho -->
+            <!-- Cabeçalho com toque 100% responsivo no círculo todo -->
             <div class="profile-header">
                 <div class="profile-avatar" id="p-avatar" onclick="VittaraProfile.abrirMenuFoto()" title="Alterar foto">
                     <i class="ti ti-user" id="p-avatar-icon"></i>
                     <img id="p-avatar-img" src="" alt="Foto de perfil" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                    <div class="profile-avatar-overlay"><i class="ti ti-camera"></i></div>
                 </div>
-                <div class="profile-avatar-overlay"><i class="ti ti-camera"></i></div>
+                <div class="profile-info">
+                    <h2 id="p-nome">—</h2>
+                    <span id="p-email" class="profile-email">—</span>
+                </div>
             </div>
             <!-- Menu de foto (oculto) -->
             <div id="profile-foto-menu" class="profile-foto-menu" style="display:none;">
@@ -32,11 +36,6 @@ window.VittaraProfile = {
             </div>
             <input type="file" id="profile-foto-input" accept="image/*" style="display:none"
                 onchange="VittaraProfile.processarFoto(this)">
-                <div class="profile-info">
-                    <h2 id="p-nome">—</h2>
-                    <span id="p-email" class="profile-email">—</span>
-                </div>
-            </div>
 
             <!-- Dados principais -->
             <div class="profile-card">

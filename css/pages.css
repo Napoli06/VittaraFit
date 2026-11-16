@@ -1402,10 +1402,22 @@
 
 /* Avatar clicável com overlay de câmera */
 .profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--c-green-pastel);
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+    color: var(--c-azure-dark);
+    flex-shrink: 0;
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
+
 .profile-avatar-overlay {
     position: absolute;
     inset: 0;
@@ -1417,8 +1429,13 @@
     font-size: 1.1rem;
     opacity: 0;
     transition: opacity 0.2s;
+    pointer-events: none; /* Garante que o toque passe 100% para o avatar */
 }
-.profile-avatar:hover .profile-avatar-overlay { opacity: 1; }
+
+.profile-avatar:hover .profile-avatar-overlay,
+.profile-avatar:active .profile-avatar-overlay { 
+    opacity: 1; 
+}
 
 /* Menu de seleção de foto */
 .profile-foto-menu {
