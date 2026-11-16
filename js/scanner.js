@@ -1,6 +1,6 @@
 window.VittaraScanner = {
 
-    zxingReader: null,
+    zxingMulti: null,
     barcodeDetector: null,
     scanCanvas: null,
     scanCtx: null,
@@ -12,6 +12,8 @@ window.VittaraScanner = {
     activeStream: null,
     scanLoopActive: false,
     scanTimer: null,
+    pendingCode: null,
+    pendingCount: 0,
 
     refresh() {
         this.renderHomeCard();
@@ -51,7 +53,7 @@ window.VittaraScanner = {
                         </div>
 
                         <div class="scanner-video-box">
-                            <video id="scanner-video" muted playsinline autoplay></video>
+                            <video id="scanner-video" muted playsinline></video>
                             <div class="scanner-frame" id="scanner-frame-box"></div>
                             <span class="scanner-viewfinder"><i class="ti ti-scan"></i></span>
                         </div>
@@ -169,23 +171,17 @@ window.VittaraScanner = {
         this.lookupProduct(barcode);
     },
 
-    // Prepara os motores de leitura (ZXing MultiFormat + Canvas com filtro de contraste)
-    async initEngines() {
-        if (!this.zxingReader && window.ZXing) {
+    // Configurado estritamente para EAN-13 (evita ler metade do código como EAN-8)
+    initEngines() {
+        if (window.ZXing && !this.zxingMulti) {
             const hints = new Map();
             hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-                ZXing.BarcodeFormat.EAN_13,
-                ZXing.BarcodeFormat.EAN_8,
-                ZXing.BarcodeFormat.UPC_A,
-                ZXing.BarcodeFormat.UPC_E,
-                ZXing.BarcodeFormat.CODE_128,
-                ZXing.BarcodeFormat.CODE_39,
-                ZXing.BarcodeFormat.ITF
+                ZXing.BarcodeFormat.EAN_13
             ]);
             hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
-            this.zxingReader = new ZXing.MultiFormatReader();
-            this.zxingReader.setHints(hints);
+            this.zxingMulti = new ZXing.MultiFormatReader();
+            this.zxingMulti.setHints(hints);
         }
 
         if (!this.scanCanvas) {
@@ -195,17 +191,27 @@ window.VittaraScanner = {
 
         if (!this.barcodeDetector && 'BarcodeDetector' in window) {
             try {
-                const formats = await BarcodeDetector.getSupportedFormats();
-                const desired = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'].filter(f => formats.includes(f));
-                if (desired.length > 0) {
-                    this.barcodeDetector = new BarcodeDetector({ formats: desired });
-                }
+                this.barcodeDetector = new BarcodeDetector({
+                    formats: ['ean_13']
+                });
             } catch (e) {}
         }
     },
 
-    // Filtra as câmeras para ter APENAS 1 Traseira Principal (alta resolução) e 1 Frontal
-    async setupCameraList() {
+    // Valida se o código tem exatamente 13 dígitos e se o dígito verificador EAN-13 é autêntico
+    isValidEAN13(code) {
+        if (!/^\d{13}$/.test(code)) return false;
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+            const digit = parseInt(code[i], 10);
+            sum += (i % 2 === 0) ? digit : digit * 3;
+        }
+        const checkDigit = (10 - (sum % 10)) % 10;
+        return checkDigit === parseInt(code[12], 10);
+    },
+
+    // Filtra para manter apenas 1 Traseira Principal (alta resolução) e 1 Frontal
+    async buildCleanCameraList() {
         const all = await navigator.mediaDevices.enumerateDevices();
         const videoInputs = all.filter(d => d.kind === 'videoinput');
 
@@ -213,36 +219,20 @@ window.VittaraScanner = {
         const frontCams = videoInputs.filter(d => /front|frontal|user|selfie|facetime/i.test(d.label));
 
         if (backCams.length > 0 || frontCams.length > 0) {
-            const filtered = [];
+            const list = [];
 
             if (backCams.length > 0) {
-                // Em celulares com 3 câmeras, a última câmera traseira listada (ou camera2 0)
-                // é o sensor principal HD com foco automático, enquanto a primeira é a grande-angular
-                const mainBack = backCams[backCams.length - 1];
-                filtered.push({
-                    deviceId: mainBack.deviceId,
-                    facingMode: 'environment',
-                    label: 'Traseira'
-                });
+                const bestBack = backCams.length > 1 ? backCams[1] : backCams[0];
+                list.push(bestBack);
             }
 
             if (frontCams.length > 0) {
-                const mainFront = frontCams[frontCams.length - 1];
-                filtered.push({
-                    deviceId: mainFront.deviceId,
-                    facingMode: 'user',
-                    label: 'Frontal'
-                });
+                list.push(frontCams[0]);
             }
 
-            this.devices = filtered;
+            this.devices = list;
         } else {
-            // Computador / Webcam
-            this.devices = videoInputs.map((d, i) => ({
-                deviceId: d.deviceId,
-                facingMode: undefined,
-                label: d.label || `Câmera ${i + 1}`
-            }));
+            this.devices = videoInputs;
         }
     },
 
@@ -255,28 +245,20 @@ window.VittaraScanner = {
                 throw new Error('SECURE_CONTEXT_REQUIRED');
             }
 
-            await this.initEngines();
-
-            // Destrava os rótulos das câmeras pedindo permissão inicial
-            const tempStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' } },
-                audio: false
-            });
-            tempStream.getTracks().forEach(t => t.stop());
-
-            await this.setupCameraList();
+            this.initEngines();
+            await this.buildCleanCameraList();
 
             this.deviceIndex = 0;
-            this.currentDeviceId = this.devices[0]?.deviceId;
+            this.currentDeviceId = this.devices[0]?.deviceId || null;
 
-            await this.startScanning(this.currentDeviceId, this.devices[0]?.facingMode);
+            await this.startScanning(this.currentDeviceId);
         } catch (e) {
             const messages = {
                 SECURE_CONTEXT_REQUIRED: 'Abra o app em https:// ou http://localhost para usar a câmera.',
                 NotAllowedError: 'A permissão da câmera foi negada. Libere o acesso no navegador.',
                 PermissionDeniedError: 'A permissão da câmera foi negada.',
-                NotFoundError: 'Nenhuma câmera encontrada neste dispositivo.',
-                NotReadableError: 'A câmera está sendo usada por outro aplicativo.',
+                NotFoundError: 'Nenhuma câmera encontrada neste aparelho.',
+                NotReadableError: 'A câmera está ocupada por outro aplicativo.',
             };
 
             this.setStatus(messages[e.name] || `Erro ao acessar câmera: ${e.message}`, 'error');
@@ -284,45 +266,67 @@ window.VittaraScanner = {
         }
     },
 
-    async startScanning(deviceId, facingMode) {
-        this.stop(true); // Limpa stream anterior mantendo estado de abertura
+    async startScanning(deviceId) {
+        this.stop(true);
 
         const video = document.getElementById('scanner-video');
         if (!video) return;
 
-        this.setStatus('Abrindo câmera em alta definição...');
+        this.setStatus('Abrindo câmera...');
 
         const constraints = {
             audio: false,
-            video: {
-                deviceId: deviceId ? { exact: deviceId } : undefined,
-                facingMode: !deviceId && facingMode ? { ideal: facingMode } : undefined,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            }
+            video: deviceId
+                ? {
+                    deviceId: { exact: deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+                : {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
         };
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.activeStream = stream;
-            video.srcObject = stream;
-            await video.play();
 
-            // Ativa autofoco contínuo no sensor da câmera
+            video.muted = true;
+            video.playsInline = true;
+            video.srcObject = stream;
+
+            await new Promise((resolve) => {
+                if (video.readyState >= 1) return resolve();
+                const onLoaded = () => {
+                    video.removeEventListener('loadedmetadata', onLoaded);
+                    resolve();
+                };
+                video.addEventListener('loadedmetadata', onLoaded);
+                setTimeout(resolve, 500);
+            });
+
+            try {
+                await video.play();
+            } catch (playErr) {
+                console.warn('Aviso de play ignorado:', playErr);
+            }
+
+            await this.buildCleanCameraList();
+
             const track = stream.getVideoTracks()[0];
             if (track && track.getCapabilities) {
                 const caps = track.getCapabilities();
-                const adv = {};
                 if (caps.focusMode && caps.focusMode.includes('continuous')) {
-                    adv.focusMode = 'continuous';
-                }
-                if (Object.keys(adv).length > 0) {
-                    track.applyConstraints({ advanced: [adv] }).catch(() => {});
+                    track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
                 }
             }
 
             this.scanLoopActive = true;
-            this.setStatus('Câmera ativa! Posicione o código de barras na mira.', 'success');
+            this.pendingCode = null;
+            this.pendingCount = 0;
+            this.setStatus('Câmera ativa! Aponte para o código de barras.', 'success');
 
             const startBtn = document.getElementById('scanner-start');
             if (startBtn) startBtn.disabled = true;
@@ -331,8 +335,9 @@ window.VittaraScanner = {
             if (switchBtn) switchBtn.disabled = this.devices.length < 2;
 
             this.scheduleNextScan(video);
+
         } catch (e) {
-            this.setStatus('Erro ao iniciar vídeo: ' + e.message, 'error');
+            this.setStatus('Erro ao abrir câmera: ' + e.message, 'error');
             const startBtn = document.getElementById('scanner-start');
             if (startBtn) startBtn.disabled = false;
         }
@@ -340,10 +345,9 @@ window.VittaraScanner = {
 
     scheduleNextScan(video) {
         if (!this.scanLoopActive) return;
-        this.scanTimer = setTimeout(() => this.scanFrame(video), 80);
+        this.scanTimer = setTimeout(() => this.scanFrame(video), 70);
     },
 
-    // Analisa cada frame com 4 estratégias simultâneas (Nativo + Quadro Inteiro + Zoom Central + Desespelhado)
     async scanFrame(video) {
         if (!this.scanLoopActive || !video || video.readyState < 2 || !video.videoWidth) {
             this.scheduleNextScan(video);
@@ -353,19 +357,22 @@ window.VittaraScanner = {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
 
-        // 1. Tenta BarcodeDetector nativo (se suportado pelo hardware)
+        // 1. BarcodeDetector nativo (Android - já garante leitura real)
         if (this.barcodeDetector) {
             try {
                 const barcodes = await this.barcodeDetector.detect(video);
                 if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
-                    this.onDetect(barcodes[0].rawValue);
-                    this.scheduleNextScan(video);
-                    return;
+                    const candidate = String(barcodes[0].rawValue).trim();
+                    if (this.isValidEAN13(candidate)) {
+                        this.confirmAndDetect(candidate, true);
+                        this.scheduleNextScan(video);
+                        return;
+                    }
                 }
             } catch (e) {}
         }
 
-        // 2. ZXing - Quadro completo redimensionado
+        // 2. Quadro inteiro no Canvas (ZXing)
         const scale = Math.min(1, 800 / vw);
         const cw = Math.floor(vw * scale);
         const ch = Math.floor(vh * scale);
@@ -377,16 +384,16 @@ window.VittaraScanner = {
 
         let code = this.tryDecodeCanvas(this.scanCanvas);
         if (code) {
-            this.onDetect(code);
+            this.confirmAndDetect(code);
             this.scheduleNextScan(video);
             return;
         }
 
-        // 3. ZXing - Recorte Central (Zoom na mira) com reforço de nitidez e contraste
-        const cropX = Math.floor(vw * 0.12);
-        const cropY = Math.floor(vh * 0.22);
-        const cropW = Math.floor(vw * 0.76);
-        const cropH = Math.floor(vh * 0.56);
+        // 3. Recorte Central (Zoom na mira) + Alto Contraste
+        const cropX = Math.floor(vw * 0.10);
+        const cropY = Math.floor(vh * 0.20);
+        const cropW = Math.floor(vw * 0.80);
+        const cropH = Math.floor(vh * 0.60);
 
         this.scanCanvas.width = 640;
         this.scanCanvas.height = 360;
@@ -395,12 +402,12 @@ window.VittaraScanner = {
 
         code = this.tryDecodeCanvas(this.scanCanvas);
         if (code) {
-            this.onDetect(code);
+            this.confirmAndDetect(code);
             this.scheduleNextScan(video);
             return;
         }
 
-        // 4. ZXing - Recorte Desespelhado (essencial para Webcams de PC e Câmeras Frontais)
+        // 4. Recorte Desespelhado (para Webcams de PC e Câmera Frontal)
         this.scanCtx.save();
         this.scanCtx.scale(-1, 1);
         this.scanCtx.drawImage(video, cropX, cropY, cropW, cropH, -640, 0, 640, 360);
@@ -408,7 +415,7 @@ window.VittaraScanner = {
 
         code = this.tryDecodeCanvas(this.scanCanvas);
         if (code) {
-            this.onDetect(code);
+            this.confirmAndDetect(code);
             this.scheduleNextScan(video);
             return;
         }
@@ -416,54 +423,76 @@ window.VittaraScanner = {
         this.scheduleNextScan(video);
     },
 
-    // Decodifica o canvas testando dois algoritmos de binarização
     tryDecodeCanvas(canvas) {
-        if (!this.zxingReader || !window.ZXing) return null;
+        if (!this.zxingMulti || !window.ZXing) return null;
 
         try {
             const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
 
-            // Algoritmo 1: GlobalHistogram (ideal para webcam e foco suave)
             try {
                 const bitmap1 = new ZXing.BinaryBitmap(new ZXing.GlobalHistogramBinarizer(luminance));
-                const res1 = this.zxingReader.decodeWithState(bitmap1);
-                if (res1 && res1.getText()) return res1.getText();
+                const res1 = this.zxingMulti.decodeWithState(bitmap1);
+                if (res1 && this.isValidEAN13(res1.getText())) return res1.getText();
             } catch (e1) {}
 
-            // Algoritmo 2: HybridBinarizer (ideal para sombras ou reflexo na embalagem)
             try {
                 const bitmap2 = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
-                const res2 = this.zxingReader.decodeWithState(bitmap2);
-                if (res2 && res2.getText()) return res2.getText();
+                const res2 = this.zxingMulti.decodeWithState(bitmap2);
+                if (res2 && this.isValidEAN13(res2.getText())) return res2.getText();
             } catch (e2) {}
         } catch (e) {}
 
         return null;
     },
 
-    // Desliga completamente a câmera e o loop de captura
+    // Confirma o código em 2 leituras seguidas (70ms) para eliminar 100% leituras falsas de imagem tremida
+    confirmAndDetect(code, instant = false) {
+        const clean = String(code || '').trim();
+        if (!this.isValidEAN13(clean)) return;
+
+        if (instant) {
+            this.onDetect(clean);
+            return;
+        }
+
+        if (this.pendingCode === clean) {
+            this.pendingCount++;
+            if (this.pendingCount >= 2) {
+                this.pendingCode = null;
+                this.pendingCount = 0;
+                this.onDetect(clean);
+            }
+        } else {
+            this.pendingCode = clean;
+            this.pendingCount = 1;
+        }
+    },
+
     stop(silent = false) {
         this.scanLoopActive = false;
+        this.pendingCode = null;
+        this.pendingCount = 0;
 
         if (this.scanTimer) {
             clearTimeout(this.scanTimer);
             this.scanTimer = null;
         }
 
-        if (this.zxingReader) {
-            try { this.zxingReader.reset(); } catch (e) {}
-        }
-
         if (this.activeStream) {
             this.activeStream.getTracks().forEach(track => {
-                track.stop();
+                try { track.stop(); } catch (e) {}
             });
             this.activeStream = null;
         }
 
         const video = document.getElementById('scanner-video');
         if (video) {
-            video.srcObject = null;
+            if (video.srcObject) {
+                try {
+                    video.srcObject.getTracks().forEach(t => t.stop());
+                } catch (e) {}
+                video.srcObject = null;
+            }
         }
 
         if (!silent) {
@@ -475,13 +504,13 @@ window.VittaraScanner = {
         }
     },
 
-    // Alterna em 1 clique direto entre Traseira e Frontal
     async switchCamera() {
         if (this.devices.length < 2) return;
+        this.stop(true);
+        await new Promise(r => setTimeout(r, 150));
         this.deviceIndex = (this.deviceIndex + 1) % this.devices.length;
-        const target = this.devices[this.deviceIndex];
-        this.currentDeviceId = target.deviceId;
-        await this.startScanning(target.deviceId, target.facingMode);
+        this.currentDeviceId = this.devices[this.deviceIndex].deviceId;
+        await this.startScanning(this.currentDeviceId);
     },
 
     setStatus(msg, kind) {
@@ -493,13 +522,12 @@ window.VittaraScanner = {
 
     onDetect(rawText) {
         const text = String(rawText || '').trim();
-        if (!text) return;
+        if (!this.isValidEAN13(text)) return;
 
         if (this.seen.has(text)) return;
         this.seen.add(text);
         setTimeout(() => this.seen.delete(text), 4000);
 
-        // Feedback visual na moldura do scanner
         const frame = document.getElementById('scanner-frame-box');
         if (frame) {
             frame.style.borderColor = '#4ade80';
@@ -510,7 +538,6 @@ window.VittaraScanner = {
             }, 600);
         }
 
-        // Feedback sonoro (bip de leitor) e vibração
         try {
             navigator.vibrate?.([70]);
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -547,10 +574,10 @@ window.VittaraScanner = {
             const data = await res.json();
 
             if (data.status !== 1 || !data.product) {
-                const notFoundMsg = `Código ${barcode} lido com sucesso, mas este produto ainda não consta na base Open Food Facts.`;
+                const notFoundMsg = `Código ${barcode} lido com sucesso, mas este produto não foi encontrado na base Open Food Facts.`;
                 if (box) box.innerHTML = `<p class="scanner-msg">${notFoundMsg}</p>`;
                 this.setStatus(notFoundMsg, 'error');
-                window.VittaraUI?.toast?.(`Código ${barcode} lido (produto não cadastrado na base)`, 'error');
+                window.VittaraUI?.toast?.(`Código ${barcode} lido (não encontrado na base)`, 'error');
                 return;
             }
 
