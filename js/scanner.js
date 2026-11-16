@@ -19,6 +19,9 @@ window.VittaraScanner = {
         this.renderHomeCard();
         this.renderPage();
         this.renderHistory();
+        if (window.VittaraAuth?.currentUser && window.VittaraDB?.loadScanHistory) {
+            VittaraDB.loadScanHistory();
+        }
     },
 
     renderHomeCard() {
@@ -113,7 +116,12 @@ window.VittaraScanner = {
                                     <h2>Produtos já cadastrados</h2>
                                     <p>Itens lidos e salvos na sua conta.</p>
                                 </div>
-                                <i class="ti ti-list-check scanner-heading-icon"></i>
+                                <div class="scanner-history-top-actions">
+                                    <button type="button" id="scanner-clear-all-btn" class="scanner-clear-btn" onclick="VittaraScanner.clearAllHistory()" title="Limpar todo o histórico" aria-label="Limpar todo o histórico">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                    <i class="ti ti-list-check scanner-heading-icon"></i>
+                                </div>
                             </div>
                             <div id="scanner-history-list"></div>
                         </section>
@@ -763,11 +771,17 @@ window.VittaraScanner = {
         `;
     },
 
-    renderHistory() {
+        renderHistory() {
         const list = document.getElementById('scanner-history-list');
+        const clearBtn = document.getElementById('scanner-clear-all-btn');
         if (!list) return;
 
         const history = window.VittaraState?.scanHistory || [];
+
+        // Esconde ou desabilita a lixeira geral se a lista já estiver vazia
+        if (clearBtn) {
+            clearBtn.style.display = history.length > 0 ? 'inline-flex' : 'none';
+        }
 
         if (history.length === 0) {
             list.innerHTML = `
@@ -779,7 +793,7 @@ window.VittaraScanner = {
             return;
         }
 
-        list.innerHTML = history.map(item => {
+        list.innerHTML = history.map((item, index) => {
             const nutriBadge = item.nutriscore
                 ? `<span class="scanner-badge">Nutri-Score ${item.nutriscore}</span>`
                 : `<span class="scanner-badge muted">Nutri-Score N/A</span>`;
@@ -802,11 +816,19 @@ window.VittaraScanner = {
             return `
                 <div class="scanner-history-item" onclick="VittaraScanner.toggleHistoryItem(this)">
                     <div class="scanner-history-header">
-                        <span class="scanner-history-icon"><i class="ti ti-package"></i></span>
+                        <span class="scanner-history-icon ${item.imagem ? 'has-img' : ''}">
+                            ${item.imagem
+                                ? `<img src="${item.imagem}" alt="${item.nome || 'Produto'}" loading="lazy">`
+                                : `<i class="ti ti-package"></i>`
+                            }
+                        </span>
                         <span class="scanner-history-info">
                             <strong>${item.nome || item.barcode}</strong>
                             <small><i class="ti ti-barcode"></i> ${item.barcode}</small>
                         </span>
+                        <button type="button" class="scanner-item-delete-btn" onclick="VittaraScanner.deleteHistoryItem(${index}, event)" title="Excluir produto" aria-label="Excluir produto">
+                            <i class="ti ti-trash"></i>
+                        </button>
                         <i class="ti ti-chevron-right scanner-history-arrow"></i>
                     </div>
                     <div class="scanner-history-details">
@@ -819,6 +841,46 @@ window.VittaraScanner = {
                 </div>
             `;
         }).join('');
+    },
+
+    // Exclui apenas 1 produto específico clicado na lista
+    async deleteHistoryItem(index, event) {
+        if (event) event.stopPropagation(); // Impede de abrir a gaveta ao clicar na lixeira
+
+        const history = window.VittaraState?.scanHistory || [];
+        const item = history[index];
+        if (!item) return;
+
+        // Remove da tela na hora
+        history.splice(index, 1);
+        this.renderHistory();
+
+        try {
+            if (window.VittaraAuth?.currentUser) {
+                await VittaraDB.deleteScan(item);
+            }
+            window.VittaraUI?.toast?.('Produto removido do histórico.', 'success');
+        } catch (e) {
+            window.VittaraUI?.toast?.('Erro ao remover produto.', 'error');
+        }
+    },
+
+    // Limpa todos os produtos do histórico
+    async clearAllHistory() {
+        const history = window.VittaraState?.scanHistory || [];
+        if (history.length === 0) return;
+
+        window.VittaraState.scanHistory = [];
+        this.renderHistory();
+
+        try {
+            if (window.VittaraAuth?.currentUser) {
+                await VittaraDB.clearScanHistory();
+            }
+            window.VittaraUI?.toast?.('Histórico de produtos limpo!', 'success');
+        } catch (e) {
+            window.VittaraUI?.toast?.('Erro ao limpar histórico.', 'error');
+        }
     },
 
     toggleHistoryItem(el) {

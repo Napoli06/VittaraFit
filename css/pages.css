@@ -1782,3 +1782,70 @@
 .scanner-input-group button#scanner-manual-btn i {
     font-size: 1.25rem !important;
 }
+/* Ações de exclusão no histórico do Scanner */
+.scanner-history-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.scanner-clear-btn,
+.scanner-item-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(224, 133, 133, 0.35);
+    background: rgba(224, 133, 133, 0.12);
+    color: #c95b5b;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+}
+
+.scanner-clear-btn i,
+.scanner-item-delete-btn i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.scanner-clear-btn:hover,
+.scanner-item-delete-btn:hover,
+.scanner-clear-btn:active,
+.scanner-item-delete-btn:active {
+    background: #d96666;
+    color: #ffffff;
+    border-color: #d96666;
+    transform: scale(1.05);
+}
+/* Miniatura da foto do produto no histórico do Scanner (Proporção inteira e centralizada) */
+.scanner-history-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+.scanner-history-icon.has-img {
+    background: #ffffff !important;
+    border: 1px solid rgba(31, 54, 61, 0.12) !important;
+    padding: 3px !important;
+}
+
+.scanner-history-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 38px !important;
+    max-height: 38px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block !important;
+}

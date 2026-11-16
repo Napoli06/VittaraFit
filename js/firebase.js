@@ -120,14 +120,15 @@ window.VittaraDB = {
         });
     },
 
-    //busca os dados do perfil e joga no VittaraState
+        //busca os dados do perfil e joga no VittaraState
     async loadUserProfile(uid) {
         const doc = await db.collection('usuarios').doc(uid).get();
 
         if (doc.exists) {
             Object.assign(VittaraState.user, doc.data());
-            // Carrega o registro diário de hoje
+            // Carrega o registro diário de hoje e o histórico do scanner
             await this.loadDailyLog(VittaraHome.hojeKey());
+            await this.loadScanHistory();
 
             if (window.VittaraProfile) VittaraProfile.refresh();
             if (window.VittaraHome) VittaraHome.refresh();
@@ -230,7 +231,6 @@ window.VittaraDB = {
 
     // HISTORICO DO SCANNER
     async saveScan(product) {
-        //addDoc cria um produto com ID automático
         await db
             .collection('usuarios').doc(this.uid)
             .collection('scans')
@@ -248,8 +248,41 @@ window.VittaraDB = {
             .limit(10)
             .get();
 
-        VittaraState.scanHistory = snap.docs.map(doc => doc.data());
+        // Guarda também o id do documento para permitir excluir itens específicos
+        VittaraState.scanHistory = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         VittaraScanner.renderHistory();
+    },
+
+    // Exclui 1 produto específico do histórico no Firestore
+    async deleteScan(item) {
+        if (!this.uid || !item) return;
+        const scansRef = db.collection('usuarios').doc(this.uid).collection('scans');
+
+        if (item.id) {
+            await scansRef.doc(item.id).delete();
+        } else if (item.barcode) {
+            // Fallback para itens antigos salvos sem ID
+            const snap = await scansRef.where('barcode', '==', item.barcode).limit(1).get();
+            const batch = db.batch();
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        }
+    },
+
+    // Limpa todo o histórico de produtos escaneados no Firestore
+    async clearScanHistory() {
+        if (!this.uid) return;
+        const snap = await db
+            .collection('usuarios').doc(this.uid)
+            .collection('scans')
+            .get();
+
+        const batch = db.batch();
+        snap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
     },
 
     //Diferente do .get() que busca uma vez, o .onSnapshot() fica "ouvindo" e atualiza, 
